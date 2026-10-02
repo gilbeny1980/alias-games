@@ -12,14 +12,15 @@ export interface WordResult {
   ok: boolean; // true = guessed, false = skipped
 }
 
-// A mime round: a team landed on a star stone. No timer and no speaking: the explainer acts out
-// SPECIAL_WORDS words (from the stone's category) and ALL teams guess; every word goes to the team
-// that guessed it first.
+// A special round: a team landed on an outlined bubble. No timer; the explainer explains
+// SPECIAL_WORDS words (the bubble's number picks the word on each card) to ALL teams, and every
+// word goes to the team that guessed it first.
 export interface SpecialState {
   team: TeamId; // the team that landed on the bubble (its explainer explains)
-  category: number; // the category of the stone the team landed on
+  slot: number; // the number on the bubble
   awards: (number | null)[]; // per finished word: the team that guessed it, or null
   word: string;
+  card: string[];
 }
 
 // Full server-side room (never sent to clients as-is)
@@ -39,10 +40,11 @@ export interface AliasRoom {
   explainerId: string | null;
   endsAt: number | null;
   word: string | null;
+  card: string[] | null; // current card: 8 words, the team's square number picks one
   special: SpecialState | null;
-  // per team: the category of the star stone it landed on, if its mime round is still owed (played on its NEXT turn)
+  // per team: the bubble number it landed on if its special round is still owed (played on its NEXT turn)
   specialPending: (number | null)[];
-  decks: string[][]; // shuffled words per category
+  deck: string[][];
   results: WordResult[];
   winner: TeamId | null;
   version: number;
@@ -67,10 +69,11 @@ export interface AliasView {
   teamCount: number;
   teamNames: string[];
   isReferee: boolean; // on the other team: sees the word live to check for cheating
-  special: { team: TeamId; category: number; index: number; total: number; awards: (number | null)[] } | null;
+  special: { team: TeamId; slot: number; index: number; total: number; awards: (number | null)[] } | null;
   specialPending: (number | null)[]; // a ⭐ for teams that owe a special round on their next turn
-  specialTurn: number | null; // in "ready": the category if the coming turn is a mime round
-  category: number; // the category of the stone the active team stands on (its words come from here)
+  specialTurn: number | null; // in "ready": the bubble number if the coming turn is a special round
+  slot: number; // 1-8: the number on the bubble the active team stands on = which word of each card it explains
+  card: string[] | null; // only for the explainer and the opposing team, only while playing
   scores: number[];
   turn: number;
   activeTeam: TeamId;
