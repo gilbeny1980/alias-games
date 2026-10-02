@@ -340,7 +340,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
                 <p className="text-gray-500 text-sm">
                   {view.useDice
                     ? "לכל מילה תוטל קובייה, והמספר שיצא קובע איזו מילה מהקלף להסביר. "
-                    : `הקבוצה על משבצת ${view.slot}, אז תסבירו את המילה מספר ${view.slot} בכל קלף. `}
+                    : `לפי המקום של הקבוצה על המסלול, מסבירים את המילה מספר ${view.slot} בכל קלף. `}
                   בלי להגיד את המילה עצמה. יש לכם {view.roundSeconds} שניות.
                 </p>
                 <BigButton onClick={() => act("begin")} disabled={busy} color="bg-green-600">התחל סיבוב</BigButton>
@@ -682,38 +682,85 @@ function AliasCard({ card, slot }: { card: string[]; slot: number }) {
   );
 }
 
-// The board: numbered squares 1-8 repeating, start at the beginning, finish flag at the end.
+// The board: a winding road from START to the finish flag. Every step is a small dot on the road,
+// and each team's piece sits on the step it has reached (it glides when the team moves).
+const ROAD_COLS = 8;
+const ROAD_W = 360;
+const ROAD_PAD = 30;
+const ROAD_DX = (ROAD_W - 2 * ROAD_PAD) / (ROAD_COLS - 1);
+const ROAD_DY = 50;
+const ROAD_TOP = 40;
+
+// step i -> position on the road; rows snake back and forth, starting on the right (RTL)
+function roadPoint(i: number) {
+  const row = Math.floor(i / ROAD_COLS);
+  const col = i % ROAD_COLS;
+  const x = row % 2 === 0 ? ROAD_W - ROAD_PAD - col * ROAD_DX : ROAD_PAD + col * ROAD_DX;
+  return { x, y: ROAD_TOP + row * ROAD_DY };
+}
+
 function Board({ view }: { view: AliasView }) {
   const total = view.targetScore;
+  const pts = Array.from({ length: total + 1 }, (_, i) => roadPoint(i));
+  const height = pts[total].y + 46;
+  const d = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)} ${p.y}`).join(" ");
+  const finish = pts[total];
+  const start = pts[0];
+  const teams = teamsOf(view);
+
   return (
-    <div className="bg-white/10 rounded-2xl p-3">
-      <div className="grid grid-cols-8 gap-1">
-        {Array.from({ length: total + 1 }, (_, i) => {
-          const here = teamsOf(view).filter((t) => view.scores[t] === i);
-          const finish = i === total;
+    <div className="bg-white/95 rounded-2xl p-3 shadow-lg">
+      <svg viewBox={`0 0 ${ROAD_W} ${height}`} className="w-full h-auto" role="img" aria-label="מסלול המשחק">
+        {/* grass */}
+        <rect x="0" y="0" width={ROAD_W} height={height} rx="14" fill="#ecfccb" />
+        {/* the road: edge, asphalt, dashed centre line */}
+        <path d={d} fill="none" stroke="#9ca3af" strokeWidth="32" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={d} fill="none" stroke="#374151" strokeWidth="26" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={d} fill="none" stroke="#fff" strokeOpacity="0.85" strokeWidth="2" strokeDasharray="7 8" strokeLinecap="round" strokeLinejoin="round" />
+        {/* one dot per step */}
+        {pts.slice(1, total).map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="2.4" fill="#fbbf24" />
+        ))}
+
+        {/* start */}
+        <g transform={`translate(${start.x} ${start.y})`}>
+          <circle r="15" fill="#16a34a" stroke="#fff" strokeWidth="3" />
+          <text y="4.5" textAnchor="middle" fontSize="12" fontWeight="800" fill="#fff">▶</text>
+        </g>
+        <g transform={`translate(${start.x - 14} ${start.y - 29})`}>
+          <rect x="-30" y="-11" width="60" height="22" rx="11" fill="#16a34a" />
+          <text y="5" textAnchor="middle" fontSize="13" fontWeight="800" fill="#fff">התחלה</text>
+        </g>
+
+        {/* finish: checkered flag */}
+        <g transform={`translate(${finish.x} ${finish.y})`}>
+          <circle r="17" fill="#fde047" stroke="#fff" strokeWidth="3" />
+          <text y="7" textAnchor="middle" fontSize="20">🏁</text>
+        </g>
+
+        {/* the teams' pieces, side by side when they share a step */}
+        {teams.map((t) => {
+          const at = Math.min(view.scores[t], total);
+          const sharing = teams.filter((u) => Math.min(view.scores[u], total) === at);
+          const offset = (sharing.indexOf(t) - (sharing.length - 1) / 2) * 13;
+          const p = pts[at];
+          const color = ["#991b1b", "#2563eb", "#16a34a", "#f59e0b"][t];
           return (
-            <div
-              key={i}
-              className={`relative aspect-square rounded-md flex items-center justify-center text-[11px] font-bold ${
-                finish ? "bg-yellow-300 text-yellow-900" : i === 0 ? "bg-white/30 text-white" : "bg-white text-red-800"
-              }`}
+            <g
+              key={t}
+              style={{ transform: `translate(${p.x + offset}px, ${p.y}px)`, transition: "transform 0.9s ease-in-out" }}
             >
-              {finish ? "🏁" : i === 0 ? "▶" : ((i - 1) % 8) + 1}
-              {here.length > 0 && (
-                <span className="absolute inset-0 flex items-center justify-center gap-0.5 rounded-md bg-black/20">
-                  {here.map((t) => (
-                    <span key={t} className={`w-3.5 h-3.5 rounded-full border-2 border-white ${TEAM_STYLE[t].bg}`} />
-                  ))}
-                </span>
+              <ellipse cx="0" cy="11" rx="8" ry="3" fill="#000" opacity="0.25" />
+              <circle r="9.5" fill={color} stroke="#fff" strokeWidth="3" />
+              {view.activeTeam === t && view.phase !== "finished" && (
+                <circle r="14" fill="none" stroke="#fff" strokeWidth="2" strokeDasharray="3 3" opacity="0.9" />
               )}
-            </div>
+            </g>
           );
         })}
-      </div>
-      <p className="text-[11px] text-red-100 mt-2 text-center">
-        {view.useDice
-          ? "הלוח מראה כמה כל קבוצה התקדמה. המילה נקבעת בהטלת קובייה."
-          : "העיגולים הם הקבוצות. המספר על המשבצת שבה קבוצה עומדת קובע איזו מילה מהקלף מסבירים."}
+      </svg>
+      <p className="text-[11px] text-gray-500 mt-1 text-center">
+        כל מילה שנוחשה מקדמת את הקבוצה צעד על המסלול{view.skipPenalty ? ", ודילוג מחזיר צעד אחורה" : ""}. הראשונה שמגיעה לדגל מנצחת.
       </p>
     </div>
   );
