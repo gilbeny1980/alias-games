@@ -1,10 +1,11 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, Crown, Loader2, LogOut, MessageCircle, SkipForward, Trophy, Users } from "lucide-react";
+import { Check, Copy, Crown, Loader2, LogOut, MessageCircle, SkipForward, Trophy, Users, Volume2, VolumeX } from "lucide-react";
 import type { AliasView, TeamId } from "@/types/alias";
 import Splash, { Hourglass } from "./Splash";
 import AliasLogo, { AliasBadge } from "./AliasLogo";
 import { specialSteps } from "@/lib/alias/track";
+import { isMuted, playTick, playTimeUp, setMuted, unlockAudio } from "./sound";
 import AdSlot from "./AdSlot";
 
 const TEAM_STYLE = [
@@ -52,6 +53,13 @@ export default function AliasClient() {
       if (!sessionStorage.getItem("alias_splash")) setSplash(true);
     } catch {}
     setReady(true);
+  }, []);
+
+  // browsers only allow sound after a touch
+  useEffect(() => {
+    const unlock = () => unlockAudio();
+    document.addEventListener("pointerdown", unlock);
+    return () => document.removeEventListener("pointerdown", unlock);
   }, []);
 
   const applyView = useCallback((v: AliasView) => {
@@ -289,12 +297,38 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
   const isHost = view.me?.id === view.hostId;
   const isExplainer = view.me?.id === view.explainerId;
   const explainer = view.players.find((p) => p.id === view.explainerId);
+  const [muted, setMutedState] = useState(false);
+  useEffect(() => setMutedState(isMuted()), []);
+
+  // The last 5 seconds tick (5,4,3,2,1, each more urgent), and a buzzer at 0. Played on every
+  // player's phone, driven by the same server clock as the hourglass.
+  const lastTick = useRef("");
+  const buzzed = useRef("");
+  useEffect(() => {
+    if (view.phase !== "playing") return;
+    const key = `${view.code}:${view.turn}`;
+    if (secondsLeft >= 1 && secondsLeft <= 5 && lastTick.current !== `${key}:${secondsLeft}`) {
+      lastTick.current = `${key}:${secondsLeft}`;
+      playTick(secondsLeft);
+    }
+    if (secondsLeft === 0 && view.endsAt && buzzed.current !== key) {
+      buzzed.current = key;
+      playTimeUp();
+    }
+  }, [view.phase, view.code, view.turn, view.endsAt, secondsLeft]);
 
   return (
     <div className="space-y-4 pb-8">
       <div className="flex items-center justify-between text-white pt-2">
         <div className="text-white"><AliasBadge /></div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => { unlockAudio(); setMuted(!muted); setMutedState(!muted); }}
+            className="p-2 bg-white/10 rounded-lg"
+            aria-label={muted ? "הפעלת צליל" : "השתקה"}
+          >
+            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
           <CodeChip code={view.code} hasPassword={view.hasPassword} />
           <button
             onClick={() => confirm("לצאת מהמשחק?") && act("leave")}
@@ -314,7 +348,31 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
         {view.phase === "ready" && (
           <Centered>
             <TeamBadge view={view} team={view.activeTeam} />
-            {isExplainer ? (
+            {view.specialTurn != null ? (
+              // this turn is the team's special round (they landed on an outlined bubble last turn)
+              isExplainer ? (
+                <>
+                  <span className="inline-block bg-amber-400 text-amber-950 text-xs font-extrabold px-3 py-1 rounded-full">⭐ סיבוב מיוחד</span>
+                  <h2 className="text-2xl font-bold">התור שלך להסביר!</h2>
+                  <p className="text-gray-500 text-sm">
+                    הקבוצה נחתה בתור הקודם על בועה עם מסגרת (בועה {view.specialTurn}), ולכן התור הזה הוא סיבוב מיוחד במקום סיבוב רגיל:
+                    בלי טיימר, מסבירים 5 מילים (המילה מספר {view.specialTurn} בכל קלף), וכל הקבוצות מנחשות.
+                  </p>
+                  <BigButton onClick={() => act("begin")} disabled={busy} color="bg-amber-500">התחל סיבוב מיוחד</BigButton>
+                </>
+              ) : (
+                <>
+                  <span className="inline-block bg-amber-400 text-amber-950 text-xs font-extrabold px-3 py-1 rounded-full">⭐ סיבוב מיוחד</span>
+                  <h2 className="text-2xl font-bold">{explainer?.name ?? "..."} מסביר/ה</h2>
+                  <p className="text-gray-500 text-sm">
+                    {view.teamNames[view.activeTeam]} נחתו על בועה עם מסגרת, והתור שלהם הוא סיבוב מיוחד: כל הקבוצות מנחשות 5 מילים! היו מוכנים.
+                  </p>
+                  <button onClick={() => act("skipExplainer")} disabled={busy} className="text-xs text-gray-400 underline">
+                    המסביר לא מגיב? החליפו תור
+                  </button>
+                </>
+              )
+            ) : isExplainer ? (
               <>
                 <h2 className="text-2xl font-bold">התור שלך להסביר!</h2>
                 <div className="flex items-center gap-3 bg-red-50 border-2 border-red-200 rounded-2xl px-5 py-3">
@@ -444,7 +502,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
           <div className="space-y-4">
             <div className="text-center space-y-1">
               <span className="inline-block bg-amber-400 text-amber-950 text-xs font-extrabold px-3 py-1 rounded-full">⭐ סיבוב מיוחד</span>
-              <h2 className="text-xl font-bold">{view.teamNames[view.special.team]} נחתו על בועה עם מסגרת!</h2>
+              <h2 className="text-xl font-bold">הסיבוב המיוחד של {view.teamNames[view.special.team]}</h2>
               <p className="text-sm text-gray-500">
                 בלי הגבלת זמן. {explainer?.name} מסביר/ה {view.special.total} מילים (המילה מספר {view.special.slot} בכל קלף), וכל הקבוצות מנחשות.
                 הקבוצה שמנחשת ראשונה מקבלת צעד קדימה.
@@ -682,6 +740,7 @@ function Scoreboard({ view }: { view: AliasView }) {
           <div className="text-xs truncate">{view.teamNames[t]}</div>
           <div className="text-3xl font-extrabold">{view.scores[t]}</div>
           <div className="text-[10px] opacity-80">מתוך {view.targetScore}</div>
+          {view.specialPending?.[t] != null && <div className="text-[10px] font-bold text-yellow-200">⭐ סיבוב מיוחד בתור הבא</div>}
         </div>
       ))}
     </div>

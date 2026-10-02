@@ -42,6 +42,8 @@ export interface AliasRoom {
   word: string | null;
   card: string[] | null; // current card: 8 words, the team's square number picks one
   special: SpecialState | null;
+  // per team: the bubble number it landed on if its special round is still owed (played on its NEXT turn)
+  specialPending: (number | null)[];
   deck: string[][];
   results: WordResult[];
   winner: TeamId | null;
@@ -68,6 +70,8 @@ export interface AliasView {
   teamNames: string[];
   isReferee: boolean; // on the other team: sees the word live to check for cheating
   special: { team: TeamId; slot: number; index: number; total: number; awards: (number | null)[] } | null;
+  specialPending: (number | null)[]; // a ⭐ for teams that owe a special round on their next turn
+  specialTurn: number | null; // in "ready": the bubble number if the coming turn is a special round
   slot: number; // 1-8: the number on the bubble the active team stands on = which word of each card it explains
   card: string[] | null; // only for the explainer and the opposing team, only while playing
   scores: number[];

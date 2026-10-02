@@ -74,6 +74,7 @@ export function createRoom(code: string, hostName: string, password?: unknown): 
     word: null,
     card: null,
     special: null,
+    specialPending: [null, null, null, null],
     deck: buildDeck(),
     results: [],
     winner: null,
@@ -176,6 +177,7 @@ function resetToLobby(room: AliasRoom) {
   room.word = null;
   room.card = null;
   room.special = null;
+  room.specialPending = [null, null, null, null];
   room.results = [];
   room.winner = null;
 }
@@ -258,6 +260,13 @@ export function applyAction(room: AliasRoom, playerId: string, a: Action): void 
     }
     case "begin": {
       if (room.phase !== "ready" || !isExplainer) throw new GameError("לא התור שלך");
+      const owed = room.specialPending[teamOf(room)];
+      if (owed !== null && owed !== undefined) {
+        // this turn is the team's special round
+        room.specialPending[teamOf(room)] = null;
+        startSpecial(room, teamOf(room), owed);
+        break;
+      }
       room.phase = "playing";
       room.endsAt = Date.now() + room.roundSeconds * 1000;
       room.results = [];
@@ -284,10 +293,10 @@ export function applyAction(room: AliasRoom, playerId: string, a: Action): void 
       const before = room.scores[team];
       const after = Math.min(room.targetScore, Math.max(0, before + roundScore(room)));
       room.scores[team] = after;
-      // landing (moving forward) on an outlined bubble starts a special round
+      // landing (moving forward) on an outlined bubble: the special round is owed, and is played
+      // on this team's NEXT turn (instead of a timed turn), not right now
       if (after > before && after < room.targetScore && isSpecialStep(after, room.targetScore)) {
-        startSpecial(room, team, slotFor(after));
-        break;
+        room.specialPending[team] = slotFor(after);
       }
       finishTurn(room);
       break;
@@ -375,6 +384,8 @@ export function viewFor(room: AliasRoom, playerId: string | null): AliasView {
     isReferee,
     slot: slotFor(copy.scores[teamOf(copy)]),
     card: copy.phase === "special" ? (isExplainer ? copy.special?.card ?? null : null) : copy.phase === "playing" && canSee ? copy.card : null,
+    specialPending: copy.specialPending ?? [null, null, null, null],
+    specialTurn: copy.phase === "ready" ? copy.specialPending?.[teamOf(copy)] ?? null : null,
     special: copy.special
       ? { team: copy.special.team, slot: copy.special.slot, index: copy.special.awards.length, total: SPECIAL_WORDS, awards: copy.special.awards }
       : null,
