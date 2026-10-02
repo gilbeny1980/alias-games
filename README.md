@@ -96,4 +96,4 @@ UPSTASH_REDIS_REST_TOKEN=
 
 - **להוסיף מילים:** `lib/alias/words.ts`
 - **צבעים ושמות קבוצות:** `TEAM_STYLE` ב-`AliasClient.tsx`, `DEFAULT_TEAM_NAMES` ב-`game.ts`
-- **גודל קלף / צלעות קובייה / מקסימום שחקנים:** קבועים בראש `lib/alias/game.ts`
+- **גודל קלף / מקסימום שחקנים:** קבועים בראש `lib/alias/game.ts`
