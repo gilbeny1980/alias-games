@@ -80,6 +80,7 @@ export default function Splash({ onDone }: { onDone: () => void }) {
       <Hourglass size={84} />
       <p className="text-red-100 text-lg">
         פותח ע״י <span className="font-bold text-white">גיל בן יהודה</span>
+        <span className="block text-sm text-red-100/90" dir="ltr">gilbeny@gmail.com</span>
       </p>
       <p className="text-red-200/70 text-xs absolute bottom-8">לחצו כדי לדלג</p>
     </div>

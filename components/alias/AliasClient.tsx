@@ -187,6 +187,9 @@ function Credit() {
   return (
     <footer className="mt-auto pt-8 pb-2 text-center text-sm text-red-100">
       פותח ע״י <span className="font-bold text-white">גיל בן יהודה</span>
+      <a href="mailto:gilbeny@gmail.com" dir="ltr" className="block text-xs text-red-100 underline mt-0.5">
+        gilbeny@gmail.com
+      </a>
     </footer>
   );
 }
