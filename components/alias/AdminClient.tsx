@@ -14,6 +14,31 @@ const STATUS_STYLE: Record<AdStatus, string> = {
 
 type Data = { config: AdsConfig; ads: Ad[] };
 
+// Shrinks a chosen photo to a banner-sized JPEG (max 900px wide, under ~300KB)
+async function shrinkImage(file: File): Promise<string> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((ok, fail) => {
+      const i = new Image();
+      i.onload = () => ok(i);
+      i.onerror = () => fail(new Error("לא ניתן לקרוא את התמונה"));
+      i.src = url;
+    });
+    const scale = Math.min(1, 900 / img.width);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+    for (const q of [0.85, 0.7, 0.55, 0.4]) {
+      const out = canvas.toDataURL("image/jpeg", q);
+      if (out.length <= 380_000) return out;
+    }
+    throw new Error("התמונה גדולה מדי, נסו תמונה קטנה יותר");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export default function AdminClient() {
   const [key, setKey] = useState("");
   const [data, setData] = useState<Data | null>(null);
@@ -128,6 +153,18 @@ type Act = (body: Record<string, unknown>) => Promise<Data | null>;
 
 function AdCard({ ad, act }: { ad: Ad; act: Act }) {
   const [price, setPrice] = useState(String(ad.pricePerClick));
+  const [editing, setEditing] = useState(false);
+  const [e, setE] = useState({ text: ad.text, href: ad.href, cta: ad.cta ?? "" });
+  const [imgError, setImgError] = useState("");
+  async function pickImage(file?: File) {
+    if (!file) return;
+    setImgError("");
+    try {
+      await act({ action: "uploadImage", id: ad.id, dataUrl: await shrinkImage(file) });
+    } catch (err) {
+      setImgError(err instanceof Error ? err.message : "שגיאה");
+    }
+  }
   const reportUrl = typeof location !== "undefined" ? `${location.origin}/report?t=${ad.reportToken}` : "";
   const due = Math.round(ad.clicks * ad.pricePerClick * 100) / 100;
   const btn = "text-xs font-bold rounded-lg px-3 py-1.5";
@@ -183,7 +220,30 @@ function AdCard({ ad, act }: { ad: Ad; act: Act }) {
         <div className="bg-green-50 rounded-lg p-2"><b className="text-base text-green-700">{due} ₪</b><br />לתשלום</div>
       </div>
 
+      {editing && (
+        <div className="border rounded-xl p-3 space-y-2 bg-gray-50">
+          <input className="w-full border rounded-lg px-3 py-2 text-sm" value={e.text} maxLength={80} onChange={(x) => setE({ ...e, text: x.target.value })} placeholder="כותרת" />
+          <input className="w-full border rounded-lg px-3 py-2 text-sm" dir="ltr" value={e.href} onChange={(x) => setE({ ...e, href: x.target.value })} placeholder="קישור יעד https://..." />
+          <input className="w-full border rounded-lg px-3 py-2 text-sm" value={e.cta} maxLength={16} onChange={(x) => setE({ ...e, cta: x.target.value })} placeholder="טקסט לכפתור" />
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <label className="bg-red-100 text-red-700 font-bold rounded-lg px-3 py-1.5 cursor-pointer">
+              {ad.imageUrl ? "החלף תמונה" : "העלה תמונה"}
+              <input type="file" accept="image/*" className="hidden" onChange={(x) => pickImage(x.target.files?.[0])} />
+            </label>
+            {ad.imageUrl && <button onClick={() => act({ action: "removeImage", id: ad.id })} className="text-gray-500 underline text-xs">הסר תמונה</button>}
+          </div>
+          {imgError && <p className="text-red-600 text-xs">{imgError}</p>}
+          <button
+            onClick={async () => { if (await act({ action: "update", id: ad.id, text: e.text, href: e.href, cta: e.cta })) setEditing(false); }}
+            className="bg-green-600 text-white font-bold rounded-lg px-4 py-1.5 text-sm"
+          >
+            שמור שינויים
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2">
+        <button onClick={() => setEditing(!editing)} className={`${btn} bg-gray-100`}>{editing ? "סגור עריכה" : "ערוך"}</button>
         {ad.status !== "approved" && <button onClick={() => act({ action: "setStatus", id: ad.id, status: "approved" })} className={`${btn} bg-green-600 text-white`}>אשר</button>}
         {ad.status === "approved" && <button onClick={() => act({ action: "setStatus", id: ad.id, status: "paused" })} className={`${btn} bg-gray-200`}>השהה</button>}
         {ad.status !== "rejected" && <button onClick={() => act({ action: "setStatus", id: ad.id, status: "rejected" })} className={`${btn} bg-red-100 text-red-700`}>דחה</button>}
@@ -197,6 +257,8 @@ function AdCard({ ad, act }: { ad: Ad; act: Act }) {
 function NewAd({ act }: { act: Act }) {
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ business: "", contact: "-", text: "", href: "", imageUrl: "", cta: "", pricePerClick: "1" });
+  const [file, setFile] = useState<File | null>(null);
+  const [err, setErr] = useState("");
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
   const input = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm";
   if (!open)
@@ -205,8 +267,21 @@ function NewAd({ act }: { act: Act }) {
     <form
       onSubmit={async (e) => {
         e.preventDefault();
+        setErr("");
         const d = await act({ action: "create", ...f, pricePerClick: Number(f.pricePerClick) });
-        if (d) { setOpen(false); setF({ ...f, business: "", text: "", href: "", imageUrl: "", cta: "" }); }
+        if (!d) return;
+        if (file) {
+          try {
+            const created = d.ads[d.ads.length - 1]; // the new ad is added last
+            await act({ action: "uploadImage", id: created.id, dataUrl: await shrinkImage(file) });
+          } catch (x) {
+            setErr(x instanceof Error ? x.message : "שגיאה בהעלאת התמונה");
+            return;
+          }
+        }
+        setOpen(false);
+        setFile(null);
+        setF({ ...f, business: "", text: "", href: "", imageUrl: "", cta: "" });
       }}
       className="bg-white rounded-2xl p-4 space-y-2"
     >
@@ -214,7 +289,12 @@ function NewAd({ act }: { act: Act }) {
       <input className={input} placeholder="שם העסק" value={f.business} onChange={set("business")} required />
       <input className={input} placeholder="כותרת" value={f.text} onChange={set("text")} maxLength={80} required />
       <input className={input} placeholder="קישור יעד https://..." value={f.href} onChange={set("href")} dir="ltr" required />
-      <input className={input} placeholder="קישור לתמונה (לא חובה)" value={f.imageUrl} onChange={set("imageUrl")} dir="ltr" />
+      <label className="flex items-center gap-2 text-sm">
+        <span className="bg-red-100 text-red-700 font-bold rounded-lg px-3 py-1.5 cursor-pointer">{file ? "החלף תמונה" : "העלה תמונת באנר (לא חובה)"}</span>
+        <input type="file" accept="image/*" className="hidden" onChange={(x) => setFile(x.target.files?.[0] ?? null)} />
+        {file && <span className="text-xs text-gray-500 truncate">{file.name}</span>}
+      </label>
+      {err && <p className="text-red-600 text-xs">{err}</p>}
       <input className={input} placeholder="טקסט לכפתור (לא חובה)" value={f.cta} onChange={set("cta")} maxLength={16} />
       <input className={input} placeholder="מחיר לכניסה ב-₪" value={f.pricePerClick} onChange={set("pricePerClick")} inputMode="decimal" dir="ltr" />
       <div className="flex gap-2">

@@ -50,9 +50,21 @@ export function mutateAds<T>(fn: (ads: Ad[]) => T): Promise<T> {
   });
 }
 
+// ── uploaded banner images (stored under their own key, served by /api/alias/ads/img/[id]) ──
+export const imageKey = (id: string) => `alias:ads:img:${id}`;
+export const IMAGE_PATH = "/api/alias/ads/img/";
+const MAX_IMAGE_CHARS = 400_000; // ~300KB
+export function cleanImageDataUrl(v: unknown): string {
+  const s = String(v ?? "");
+  if (!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) || s.length > MAX_IMAGE_CHARS)
+    throw new AdError("תמונה לא תקינה או גדולה מדי");
+  return s;
+}
+
 // ── validation ──────────────────────────────────────────────────────────────
-function cleanUrl(v: unknown, required: boolean): string | undefined {
+function cleanUrl(v: unknown, required: boolean, allowOwnImage = false): string | undefined {
   const raw = String(v ?? "").trim();
+  if (allowOwnImage && /^\/api\/alias\/ads\/img\/[a-f0-9]{12}(\?v=\d+)?$/.test(raw)) return raw;
   if (!raw) {
     if (required) throw new AdError("חסר קישור");
     return undefined;
@@ -84,7 +96,7 @@ export function buildAd(body: Record<string, unknown>, status: AdStatus): Ad {
     contact: cleanText(body.contact, 80, "פרטי קשר"),
     text: cleanText(body.text, 80, "כותרת"),
     href: cleanUrl(body.href, true)!,
-    imageUrl: cleanUrl(body.imageUrl, false),
+    imageUrl: cleanUrl(body.imageUrl, false, true),
     cta: cleanText(body.cta, 16, "", false) || undefined,
     placements: cleanPlacements(body.placements),
     status,
@@ -98,7 +110,7 @@ export function buildAd(body: Record<string, unknown>, status: AdStatus): Ad {
 export function applyEdit(ad: Ad, body: Record<string, unknown>) {
   if ("text" in body) ad.text = cleanText(body.text, 80, "כותרת");
   if ("href" in body) ad.href = cleanUrl(body.href, true)!;
-  if ("imageUrl" in body) ad.imageUrl = cleanUrl(body.imageUrl, false);
+  if ("imageUrl" in body) ad.imageUrl = cleanUrl(body.imageUrl, false, true);
   if ("cta" in body) ad.cta = cleanText(body.cta, 16, "", false) || undefined;
   if ("placements" in body) ad.placements = cleanPlacements(body.placements);
   if ("pricePerClick" in body) ad.pricePerClick = Math.max(0, Math.min(1000, Number(body.pricePerClick) || 0));

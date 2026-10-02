@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AdError, AdStatus, applyEdit, buildAd, checkAdmin, getConfig, listAds, mutateAds, saveConfig } from "@/lib/alias/adsStore";
+import { AdError, AdStatus, IMAGE_PATH, applyEdit, buildAd, checkAdmin, cleanImageDataUrl, getConfig, imageKey, listAds, mutateAds, saveConfig } from "@/lib/alias/adsStore";
+import { kvDel, kvSet } from "@/lib/kv";
 
 const STATUSES: AdStatus[] = ["pending", "approved", "paused", "rejected"];
 
@@ -51,11 +52,32 @@ export async function POST(req: NextRequest) {
           applyEdit(ad, body);
         });
         break;
+      case "uploadImage": {
+        const dataUrl = cleanImageDataUrl(body.dataUrl);
+        const id = String(body.id ?? "");
+        if (!(await listAds()).some((a) => a.id === id)) throw new AdError("פרסומת לא נמצאה");
+        await kvSet(imageKey(id), dataUrl);
+        await mutateAds((ads) => {
+          const ad = ads.find((a) => a.id === id);
+          if (ad) ad.imageUrl = `${IMAGE_PATH}${id}?v=${Date.now()}`;
+        });
+        break;
+      }
+      case "removeImage": {
+        const id = String(body.id ?? "");
+        await kvDel(imageKey(id));
+        await mutateAds((ads) => {
+          const ad = ads.find((a) => a.id === id);
+          if (ad) delete ad.imageUrl;
+        });
+        break;
+      }
       case "delete":
         await mutateAds((ads) => {
           const i = ads.findIndex((a) => a.id === body.id);
           if (i >= 0) ads.splice(i, 1);
         });
+        await kvDel(imageKey(String(body.id ?? "")));
         break;
       default:
         throw new AdError("פעולה לא מוכרת");
