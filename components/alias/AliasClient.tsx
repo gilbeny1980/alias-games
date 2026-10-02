@@ -4,6 +4,7 @@ import { Check, Copy, Crown, Loader2, LogOut, MessageCircle, SkipForward, Trophy
 import type { AliasView, TeamId } from "@/types/alias";
 import Splash, { Hourglass } from "./Splash";
 import AliasLogo, { AliasBadge } from "./AliasLogo";
+import { specialSteps } from "@/lib/alias/track";
 import AdSlot from "./AdSlot";
 
 const TEAM_STYLE = [
@@ -439,6 +440,71 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
           </div>
         )}
 
+        {view.phase === "special" && view.special && (
+          <div className="space-y-4">
+            <div className="text-center space-y-1">
+              <span className="inline-block bg-amber-400 text-amber-950 text-xs font-extrabold px-3 py-1 rounded-full">⭐ סיבוב מיוחד</span>
+              <h2 className="text-xl font-bold">{view.teamNames[view.special.team]} נחתו על בועה עם מסגרת!</h2>
+              <p className="text-sm text-gray-500">
+                בלי הגבלת זמן. {explainer?.name} מסביר/ה {view.special.total} מילים (המילה מספר {view.special.slot} בכל קלף), וכל הקבוצות מנחשות.
+                הקבוצה שמנחשת ראשונה מקבלת צעד קדימה.
+              </p>
+            </div>
+
+            <div className="flex justify-center gap-2" aria-label="התקדמות הסיבוב המיוחד">
+              {Array.from({ length: view.special.total }, (_, i) => {
+                const award = view.special!.awards[i];
+                const done = i < view.special!.awards.length;
+                return (
+                  <span
+                    key={i}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
+                      done
+                        ? award === null || award === undefined
+                          ? "bg-gray-200 border-gray-300 text-gray-500"
+                          : `${TEAM_STYLE[award].bg} border-white text-white`
+                        : i === view.special!.index
+                          ? "border-red-500 text-red-600 bg-white"
+                          : "border-gray-200 text-gray-300 bg-white"
+                    }`}
+                  >
+                    {done ? (award === null || award === undefined ? "✕" : "✓") : i + 1}
+                  </span>
+                );
+              })}
+            </div>
+            <p className="text-center text-sm font-bold">מילה {view.special.index + 1} מתוך {view.special.total}</p>
+
+            {isExplainer && view.card && view.word ? (
+              <>
+                <AliasCard card={view.card} slot={view.slot} />
+                <p className="text-center text-sm text-gray-600">איזו קבוצה ניחשה ראשונה?</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {teamsOf(view).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => act("award", { team: t })}
+                      disabled={busy}
+                      className={`${TEAM_STYLE[t].bg} text-white font-bold py-3 rounded-xl truncate px-2`}
+                    >
+                      {view.teamNames[t]} (+1)
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => act("award", { team: null })}
+                  disabled={busy}
+                  className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-xl"
+                >
+                  אף קבוצה לא ניחשה
+                </button>
+              </>
+            ) : (
+              <p className="text-center text-gray-500 text-sm">{explainer?.name} מסביר/ה... כולם מנחשים בקול! 🎯</p>
+            )}
+          </div>
+        )}
+
         {view.phase === "finished" && view.winner !== null && (
           <Centered>
             <Trophy className="w-14 h-14 text-yellow-500" />
@@ -705,6 +771,7 @@ function Board({ view }: { view: AliasView }) {
   const total = view.targetScore;
   const { pts, height } = useMemo(() => trackPoints(total), [total]);
   const teams = teamsOf(view);
+  const specials = useMemo(() => new Set(specialSteps(total)), [total]);
   const start = pts[0];
   const finish = pts[total];
 
@@ -725,6 +792,17 @@ function Board({ view }: { view: AliasView }) {
         {/* the bubbles: number 1-8 repeating, a little speech-bubble tail at the bottom left */}
         {pts.map((p, i) => {
           if (i === 0 || i === total) return null;
+          // an outlined bubble (not filled) = special round, like on the real board
+          if (specials.has(i)) {
+            return (
+              <g key={i} transform={`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`}>
+                <circle r={BUBBLE_R + 3} fill="#fde047" opacity="0.22" />
+                <path d="M-9 8 L-17 18 L-3 13" fill="none" stroke="#fff7ed" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+                <circle r={BUBBLE_R} fill="#b91c1c" stroke="#fff7ed" strokeWidth="2.8" />
+                <text y="5.2" textAnchor="middle" fontSize="15" fontWeight="800" fill="#fff7ed">{(i % 8) + 1}</text>
+              </g>
+            );
+          }
           return (
             <g key={i} transform={`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`}>
               <path d="M-9 8 L-17 18 L-3 13 Z" fill="#fff7ed" />
@@ -769,7 +847,8 @@ function Board({ view }: { view: AliasView }) {
       </svg>
       <p className="text-[11px] text-white/90 mt-2 text-center px-2">
         כולם מתחילים בבועה 1. כל מילה שנוחשה מקדמת צעד{view.skipPenalty ? ", וכל דילוג מחזיר צעד אחורה" : ""}.
-        המספר על הבועה קובע איזו מילה מסבירים בכל קלף. הראשונה שמגיעה לדגל במרכז מנצחת.
+        המספר על הבועה קובע איזו מילה מסבירים בכל קלף. בועה עם מסגרת בלבד = סיבוב מיוחד: בלי טיימר, וכל הקבוצות מנחשות.
+        הראשונה שמגיעה לדגל במרכז מנצחת.
       </p>
     </div>
   );

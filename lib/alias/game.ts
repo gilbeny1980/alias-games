@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "crypto";
 import { ALIAS_WORDS } from "./words";
+import { SPECIAL_WORDS, isSpecialStep } from "./track";
 import type { AliasPlayer, AliasRoom, AliasView, TeamId } from "@/types/alias";
 
 export class GameError extends Error {}
@@ -60,7 +61,7 @@ export function createRoom(code: string, hostName: string, password?: unknown): 
     hostId: player.id,
     players: [player],
     phase: "lobby",
-    targetScore: 50,
+    targetScore: 70, // the real board: 70 steps from the first bubble to the centre
     roundSeconds: 60,
     skipPenalty: true,
     teamCount: 2,
@@ -72,6 +73,7 @@ export function createRoom(code: string, hostName: string, password?: unknown): 
     endsAt: null,
     word: null,
     card: null,
+    special: null,
     deck: buildDeck(),
     results: [],
     winner: null,
@@ -130,7 +132,38 @@ function prepareTurn(room: AliasRoom) {
   room.endsAt = null;
   room.word = null;
   room.card = null;
+  room.special = null;
   room.results = [];
+}
+
+function drawSpecialWord(sp: NonNullable<AliasRoom["special"]>, room: AliasRoom) {
+  if (room.deck.length === 0) room.deck = buildDeck();
+  sp.card = room.deck.pop()!;
+  sp.word = sp.card[sp.slot - 1];
+}
+
+function startSpecial(room: AliasRoom, team: TeamId, slot: number) {
+  room.phase = "special";
+  room.endsAt = null;
+  room.word = null;
+  room.card = null;
+  room.special = { team, slot, awards: [], word: "", card: [] };
+  drawSpecialWord(room.special, room);
+}
+
+// Ends the current turn: the game can only end after every team has had the same number of turns.
+function finishTurn(room: AliasRoom) {
+  const roundDone = room.turn % room.teamCount === room.teamCount - 1;
+  const live = room.scores.slice(0, room.teamCount);
+  const best = Math.max(...live);
+  if (roundDone && best >= room.targetScore && live.filter((v) => v === best).length === 1) {
+    room.phase = "finished";
+    room.winner = live.indexOf(best) as TeamId;
+    room.explainerId = null;
+    return;
+  }
+  room.turn += 1;
+  prepareTurn(room);
 }
 
 function resetToLobby(room: AliasRoom) {
@@ -142,6 +175,7 @@ function resetToLobby(room: AliasRoom) {
   room.endsAt = null;
   room.word = null;
   room.card = null;
+  room.special = null;
   room.results = [];
   room.winner = null;
 }
@@ -247,19 +281,31 @@ export function applyAction(room: AliasRoom, playerId: string, a: Action): void 
     case "next": {
       if (room.phase !== "roundEnd" || !(isExplainer || isHost)) throw new GameError("לא ניתן להמשיך");
       const team = teamOf(room);
-      room.scores[team] = Math.max(0, room.scores[team] + roundScore(room));
-      // the game can only end after every team has had the same number of turns
-      const roundDone = room.turn % room.teamCount === room.teamCount - 1;
-      const live = room.scores.slice(0, room.teamCount);
-      const best = Math.max(...live);
-      if (roundDone && best >= room.targetScore && live.filter((v) => v === best).length === 1) {
-        room.phase = "finished";
-        room.winner = live.indexOf(best) as TeamId;
-        room.explainerId = null;
+      const before = room.scores[team];
+      const after = Math.min(room.targetScore, Math.max(0, before + roundScore(room)));
+      room.scores[team] = after;
+      // landing (moving forward) on an outlined bubble starts a special round
+      if (after > before && after < room.targetScore && isSpecialStep(after, room.targetScore)) {
+        startSpecial(room, team, slotFor(after));
         break;
       }
-      room.turn += 1;
-      prepareTurn(room);
+      finishTurn(room);
+      break;
+    }
+    case "award": {
+      // special round: the explainer says which team guessed the word first (or nobody)
+      if (room.phase !== "special" || !room.special || !(isExplainer || isHost)) throw new GameError("אין סיבוב מיוחד פעיל");
+      const sp = room.special;
+      const t = a.team === null ? null : Number(a.team);
+      if (t !== null && (!Number.isInteger(t) || t < 0 || t >= room.teamCount)) throw new GameError("קבוצה לא קיימת");
+      sp.awards.push(t);
+      if (t !== null) room.scores[t] = Math.min(room.targetScore, room.scores[t] + 1);
+      if (sp.awards.length >= SPECIAL_WORDS) {
+        room.special = null;
+        finishTurn(room);
+      } else {
+        drawSpecialWord(sp, room);
+      }
       break;
     }
     case "skipExplainer": {
@@ -290,10 +336,10 @@ export function removePlayer(room: AliasRoom, playerId: string): boolean {
   room.players = room.players.filter((p) => p.id !== playerId);
   if (room.players.length === 0) return true;
   if (room.hostId === playerId) room.hostId = room.players[0].id;
-  const active = ["ready", "playing", "roundEnd"].includes(room.phase);
+  const active = ["ready", "playing", "roundEnd", "special"].includes(room.phase);
   if (active && teamIds(room).some((t) => members(room, t).length < 1)) {
     resetToLobby(room);
-  } else if (wasExplainer && (room.phase === "ready" || room.phase === "playing")) {
+  } else if (wasExplainer && (room.phase === "ready" || room.phase === "playing" || room.phase === "special")) {
     prepareTurn(room); // same team, new explainer
   }
   return false;
@@ -325,10 +371,13 @@ export function viewFor(room: AliasRoom, playerId: string | null): AliasView {
     activeTeam: teamOf(copy),
     explainerId: copy.explainerId,
     endsAt: copy.endsAt,
-    word: copy.phase === "playing" && canSee ? copy.word : null,
+    word: copy.phase === "special" ? (isExplainer ? copy.special?.word ?? null : null) : copy.phase === "playing" && canSee ? copy.word : null,
     isReferee,
     slot: slotFor(copy.scores[teamOf(copy)]),
-    card: copy.phase === "playing" && canSee ? copy.card : null,
+    card: copy.phase === "special" ? (isExplainer ? copy.special?.card ?? null : null) : copy.phase === "playing" && canSee ? copy.card : null,
+    special: copy.special
+      ? { team: copy.special.team, slot: copy.special.slot, index: copy.special.awards.length, total: SPECIAL_WORDS, awards: copy.special.awards }
+      : null,
     results: revealResults ? copy.results : [],
     roundScore: roundScore(copy),
     correctCount: copy.results.filter((r) => r.ok).length,
