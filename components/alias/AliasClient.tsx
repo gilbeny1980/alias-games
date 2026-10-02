@@ -3,12 +3,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Copy, Crown, Loader2, LogOut, MessageCircle, SkipForward, Trophy, Users, Volume2, VolumeX } from "lucide-react";
 import type { AliasView, TeamId } from "@/types/alias";
 import Splash, { Hourglass } from "./Splash";
+import AliasLogo, { AliasBadge } from "./AliasLogo";
 import AdSlot from "./AdSlot";
 import Dice, { isMuted, resetDice, setMuted, unlockAudio } from "./Dice";
 
 const TEAM_STYLE = [
-  { bg: "bg-red-500", soft: "bg-red-50 border-red-200", text: "text-red-700", dot: "🔴" },
-  { bg: "bg-blue-500", soft: "bg-blue-50 border-blue-200", text: "text-blue-700", dot: "🔵" },
+  { bg: "bg-red-800", soft: "bg-red-50 border-red-200", text: "text-red-800", dot: "🔴" },
+  { bg: "bg-blue-600", soft: "bg-blue-50 border-blue-200", text: "text-blue-700", dot: "🔵" },
   { bg: "bg-green-600", soft: "bg-green-50 border-green-200", text: "text-green-700", dot: "🟢" },
   { bg: "bg-amber-500", soft: "bg-amber-50 border-amber-200", text: "text-amber-700", dot: "🟡" },
 ];
@@ -163,7 +164,7 @@ export default function AliasClient() {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="min-h-[100dvh] bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 p-4 flex justify-center"
+      className="min-h-[100dvh] bg-gradient-to-br from-red-500 via-red-600 to-red-700 p-4 flex justify-center"
       style={{
         paddingTop: "max(1rem, env(safe-area-inset-top))",
         paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
@@ -206,10 +207,8 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
 
   return (
     <Shell>
-      <div className="text-center pt-10 mb-8">
-        <div className="text-5xl bg-white rounded-3xl w-20 h-20 flex items-center justify-center shadow-xl mx-auto mb-3">🗣️</div>
-        <h1 className="text-white text-4xl font-extrabold" dir="ltr">Alias Games</h1>
-        <p className="text-blue-100 text-sm mt-1">מסבירים מילים, הצוות מנחש — אונליין עם חברים</p>
+      <div className="pt-6 mb-5">
+        <AliasLogo size={230} />
       </div>
       <div className="bg-white rounded-3xl shadow-2xl p-6 space-y-4">
         {inviteCode && (
@@ -222,7 +221,7 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
           onChange={(e) => setName(e.target.value)}
           maxLength={20}
           placeholder="השם שלך"
-          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-red-400"
         />
         <input
           type="password"
@@ -231,12 +230,12 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
           maxLength={30}
           autoComplete="new-password"
           placeholder="🔒 סיסמה לחדר (לא חובה)"
-          className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
         />
         <button
           onClick={() => go("create")}
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-lg"
+          className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-lg"
         >
           צור משחק חדש
         </button>
@@ -250,7 +249,7 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
           maxLength={30}
           autoComplete="off"
           placeholder="🔒 סיסמה (אם החדר מוגן)"
-          className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
         />
         <div className="flex gap-2">
           <input
@@ -258,12 +257,12 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
             onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
             inputMode="numeric"
             placeholder="קוד חדר"
-            className="flex-1 min-w-0 border border-gray-200 rounded-xl px-4 py-3 text-lg text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="flex-1 min-w-0 border border-gray-200 rounded-xl px-4 py-3 text-lg text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-red-400"
           />
           <button
             onClick={() => go("join")}
             disabled={loading}
-            className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold px-6 rounded-xl"
+            className="bg-gray-800 hover:bg-gray-900 disabled:opacity-50 text-white font-bold px-6 rounded-xl"
           >
             הצטרף
           </button>
@@ -292,7 +291,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
   return (
     <div className="space-y-4 pb-8">
       <div className="flex items-center justify-between text-white pt-2">
-        <div className="text-lg font-bold">🗣️ Alias Games</div>
+        <div className="text-white"><AliasBadge /></div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => { unlockAudio(); setMuted(!muted); setMutedState(!muted); }}
@@ -352,7 +351,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
             <TeamBadge view={view} team={view.activeTeam} />
             <div className="flex items-center gap-5">
               {/* key restarts the sand when a new turn starts; elapsed keeps it in step with the server clock */}
-              <Hourglass key={view.turn} seconds={view.roundSeconds} size={72} glass="#3b82f6" elapsed={view.roundSeconds - msLeft / 1000} />
+              <Hourglass key={view.turn} seconds={view.roundSeconds} size={72} glass="#dc2626" elapsed={view.roundSeconds - msLeft / 1000} />
               <div className={`text-6xl font-extrabold tabular-nums ${secondsLeft <= 10 ? "text-red-600" : "text-gray-800"}`}>
                 {secondsLeft}
               </div>
@@ -444,7 +443,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
             </ul>
             {isExplainer && <p className="text-xs text-gray-400 text-center">אפשר ללחוץ על מילה כדי לתקן את התוצאה</p>}
             {isExplainer || isHost ? (
-              <BigButton onClick={() => act("next")} disabled={busy} color="bg-blue-600">אישור והמשך</BigButton>
+              <BigButton onClick={() => act("next")} disabled={busy} color="bg-red-600">אישור והמשך</BigButton>
             ) : (
               <p className="text-center text-gray-500 text-sm">ממתינים ל{explainer?.name ?? "המסביר"}...</p>
             )}
@@ -461,7 +460,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
               {teamsOf(view).map((t) => view.scores[t]).join(" : ")}
             </p>
             {isHost ? (
-              <BigButton onClick={() => act("rematch")} disabled={busy} color="bg-blue-600">משחק חדש</BigButton>
+              <BigButton onClick={() => act("rematch")} disabled={busy} color="bg-red-600">משחק חדש</BigButton>
             ) : (
               <p className="text-sm text-gray-400">ממתינים שהמארח יתחיל משחק חדש</p>
             )}
@@ -509,7 +508,7 @@ function Lobby({ view, isHost, act, busy }: { view: AliasView; isHost: boolean; 
                   key={n}
                   onClick={() => act("settings", { teamCount: n })}
                   className={`w-10 h-9 rounded-lg font-bold border-2 ${
-                    view.teamCount === n ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-600 border-gray-200"
+                    view.teamCount === n ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-600 border-gray-200"
                   }`}
                 >
                   {n}
@@ -531,7 +530,7 @@ function Lobby({ view, isHost, act, busy }: { view: AliasView; isHost: boolean; 
               type="checkbox"
               checked={view.useDice}
               onChange={(e) => act("settings", { useDice: e.target.checked })}
-              className="w-5 h-5 accent-blue-600"
+              className="w-5 h-5 accent-red-600"
             />
           </label>
           <label className="flex items-center justify-between text-sm">
@@ -540,7 +539,7 @@ function Lobby({ view, isHost, act, busy }: { view: AliasView; isHost: boolean; 
               type="checkbox"
               checked={view.skipPenalty}
               onChange={(e) => act("settings", { skipPenalty: e.target.checked })}
-              className="w-5 h-5 accent-blue-600"
+              className="w-5 h-5 accent-red-600"
             />
           </label>
           <BigButton onClick={() => act("start")} disabled={busy || !canStart} color="bg-green-600">
@@ -572,12 +571,12 @@ function PasswordBox({ hasPassword, onSave, busy }: { hasPassword: boolean; onSa
           maxLength={30}
           autoComplete="new-password"
           placeholder={hasPassword ? "סיסמה חדשה" : "קבעו סיסמה"}
-          className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
         />
         <button
           disabled={busy || (!pw && !hasPassword)}
           onClick={() => { onSave(pw); setPw(""); }}
-          className="bg-blue-600 disabled:opacity-40 text-white text-sm font-bold px-3 rounded-lg"
+          className="bg-red-600 disabled:opacity-40 text-white text-sm font-bold px-3 rounded-lg"
         >
           {pw ? "שמור" : "הסר"}
         </button>
@@ -646,18 +645,18 @@ function Scoreboard({ view }: { view: AliasView }) {
 // One Alias card: 8 words, the number on the team's square picks the one to explain.
 function AliasCard({ card, slot }: { card: string[]; slot: number }) {
   return (
-    <div className="w-full rounded-2xl border-2 border-blue-200 bg-blue-50 overflow-hidden">
-      <ul className="divide-y divide-blue-100">
+    <div className="w-full rounded-2xl border-2 border-red-200 bg-red-50 overflow-hidden">
+      <ul className="divide-y divide-red-100">
         {card.map((w, i) => {
           const active = i + 1 === slot;
           return (
             <li
               key={i}
               className={`flex items-center gap-3 px-3 ${
-                active ? "bg-yellow-200 py-3 text-2xl font-extrabold text-blue-900" : "py-1 text-sm text-gray-400"
+                active ? "bg-yellow-200 py-3 text-2xl font-extrabold text-red-900" : "py-1 text-sm text-gray-400"
               }`}
             >
-              <span className={`w-6 shrink-0 text-center ${active ? "text-blue-700" : "text-blue-300"}`}>{i + 1}</span>
+              <span className={`w-6 shrink-0 text-center ${active ? "text-red-700" : "text-red-300"}`}>{i + 1}</span>
               <span className="flex-1 text-center break-words">{w}</span>
               <span className="w-6 shrink-0" />
             </li>
@@ -681,7 +680,7 @@ function Board({ view }: { view: AliasView }) {
             <div
               key={i}
               className={`relative aspect-square rounded-md flex items-center justify-center text-[11px] font-bold ${
-                finish ? "bg-yellow-300 text-yellow-900" : i === 0 ? "bg-white/30 text-white" : "bg-white text-blue-800"
+                finish ? "bg-yellow-300 text-yellow-900" : i === 0 ? "bg-white/30 text-white" : "bg-white text-red-800"
               }`}
             >
               {finish ? "🏁" : i === 0 ? "▶" : ((i - 1) % 8) + 1}
@@ -696,7 +695,7 @@ function Board({ view }: { view: AliasView }) {
           );
         })}
       </div>
-      <p className="text-[11px] text-blue-100 mt-2 text-center">
+      <p className="text-[11px] text-red-100 mt-2 text-center">
         {view.useDice
           ? "הלוח מראה כמה כל קבוצה התקדמה. המילה נקבעת בהטלת קובייה."
           : "העיגולים הם הקבוצות. המספר על המשבצת שבה קבוצה עומדת קובע איזו מילה מהקלף מסבירים."}

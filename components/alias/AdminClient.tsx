@@ -49,7 +49,7 @@ export default function AdminClient() {
   }
   const act = (body: Record<string, unknown>) => call(key, body);
 
-  const shell = "min-h-[100dvh] bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 p-4 flex justify-center";
+  const shell = "min-h-[100dvh] bg-gradient-to-br from-red-500 via-red-600 to-red-700 p-4 flex justify-center";
 
   if (off)
     return (
@@ -73,10 +73,10 @@ export default function AdminClient() {
             placeholder="מפתח ניהול"
             autoComplete="current-password"
             dir="ltr"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-400"
           />
           {error && <p className="text-red-600 text-sm text-center">{error}</p>}
-          <button className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl">כניסה</button>
+          <button className="w-full bg-red-600 text-white font-bold py-3 rounded-xl">כניסה</button>
         </form>
       </div>
     );
@@ -112,7 +112,7 @@ export default function AdminClient() {
         </div>
 
         <h2 className="text-white font-bold">ממתינות לאישור ({pending.length})</h2>
-        {pending.length === 0 && <p className="text-blue-100 text-sm">אין בקשות חדשות.</p>}
+        {pending.length === 0 && <p className="text-red-100 text-sm">אין בקשות חדשות.</p>}
         {pending.map((a) => <AdCard key={a.id} ad={a} act={act} />)}
 
         <h2 className="text-white font-bold">שאר הפרסומות ({rest.length})</h2>
@@ -150,10 +150,10 @@ function AdCard({ ad, act }: { ad: Ad; act: Act }) {
         )}
         <div className="flex items-center justify-between gap-2 px-3 py-2">
           <span className="text-sm font-bold">{ad.text}</span>
-          {ad.cta && <span className="text-xs bg-blue-600 text-white rounded-full px-3 py-1">{ad.cta}</span>}
+          {ad.cta && <span className="text-xs bg-red-600 text-white rounded-full px-3 py-1">{ad.cta}</span>}
         </div>
       </div>
-      <a href={ad.href} target="_blank" rel="noopener noreferrer nofollow" dir="ltr" className="block text-xs text-blue-600 underline break-all">{ad.href}</a>
+      <a href={ad.href} target="_blank" rel="noopener noreferrer nofollow" dir="ltr" className="block text-xs text-red-600 underline break-all">{ad.href}</a>
 
       <div className="flex flex-wrap gap-1 text-xs">
         {PLACEMENTS.map((p: Placement) => (
@@ -164,7 +164,7 @@ function AdCard({ ad, act }: { ad: Ad; act: Act }) {
               onChange={(e) =>
                 act({ action: "update", id: ad.id, placements: e.target.checked ? [...ad.placements, p] : ad.placements.filter((x) => x !== p) })
               }
-              className="accent-blue-600"
+              className="accent-red-600"
             />
             {PLACEMENT_LABELS[p]}
           </label>
@@ -187,7 +187,7 @@ function AdCard({ ad, act }: { ad: Ad; act: Act }) {
         {ad.status !== "approved" && <button onClick={() => act({ action: "setStatus", id: ad.id, status: "approved" })} className={`${btn} bg-green-600 text-white`}>אשר</button>}
         {ad.status === "approved" && <button onClick={() => act({ action: "setStatus", id: ad.id, status: "paused" })} className={`${btn} bg-gray-200`}>השהה</button>}
         {ad.status !== "rejected" && <button onClick={() => act({ action: "setStatus", id: ad.id, status: "rejected" })} className={`${btn} bg-red-100 text-red-700`}>דחה</button>}
-        <button onClick={() => navigator.clipboard?.writeText(reportUrl)} className={`${btn} bg-blue-100 text-blue-700`}>העתק קישור דוח למפרסם</button>
+        <button onClick={() => navigator.clipboard?.writeText(reportUrl)} className={`${btn} bg-red-100 text-red-700`}>העתק קישור דוח למפרסם</button>
         <button onClick={() => confirm("למחוק את הפרסומת?") && act({ action: "delete", id: ad.id })} className={`${btn} text-gray-400`}>מחק</button>
       </div>
     </div>

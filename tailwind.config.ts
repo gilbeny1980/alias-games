@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Segoe UI", "Tahoma", "Arial", "sans-serif"],
+        sans: ["Rubik", "Segoe UI", "Tahoma", "Arial", "sans-serif"],
       },
       animation: {
         "fade-in": "fadeIn 0.3s ease-in-out",

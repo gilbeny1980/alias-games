@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useId, useState } from "react";
+import AliasLogo from "./AliasLogo";
 
 export const SPLASH_SECONDS = 5;
 
@@ -73,15 +74,14 @@ export default function Splash({ onDone }: { onDone: () => void }) {
   return (
     <div
       onClick={onDone}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 text-white animate-fade-in"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-gradient-to-br from-red-500 via-red-600 to-red-700 text-white animate-fade-in"
     >
-      <div className="text-5xl bg-white rounded-3xl w-20 h-20 flex items-center justify-center shadow-xl">🗣️</div>
-      <h1 className="text-5xl font-extrabold" dir="ltr">Alias Games</h1>
-      <Hourglass />
-      <p className="text-blue-100 text-lg">
+      <AliasLogo size={250} />
+      <Hourglass size={84} />
+      <p className="text-red-100 text-lg">
         פותח ע״י <span className="font-bold text-white">גיל בן יהודה</span>
       </p>
-      <p className="text-blue-200/70 text-xs absolute bottom-8">לחצו כדי לדלג</p>
+      <p className="text-red-200/70 text-xs absolute bottom-8">לחצו כדי לדלג</p>
     </div>
   );
 }
