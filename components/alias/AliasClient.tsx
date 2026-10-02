@@ -218,6 +218,7 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
   const [joinPw, setJoinPw] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showRules, setShowRules] = useState(false);
 
   async function go(mode: "create" | "join") {
     setError("");
@@ -245,6 +246,13 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
       <div className="pt-6 mb-5">
         <YuvalLogo size={230} />
       </div>
+      <button
+        onClick={() => setShowRules(true)}
+        className="w-full mb-4 bg-white/15 hover:bg-white/25 border border-white/40 text-white font-bold py-3 rounded-2xl text-lg"
+      >
+        📖 חוקי המשחק והסבר
+      </button>
+      {showRules && <RulesModal onClose={() => setShowRules(false)} />}
       <div className="bg-white rounded-3xl shadow-2xl p-6 space-y-4">
         {inviteCode && (
           <div className="bg-green-50 border border-green-200 text-green-800 rounded-xl p-3 text-sm text-center">
@@ -306,6 +314,36 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
       </div>
       <div className="mt-4"><AdSlot placement="home" /></div>
     </Shell>
+  );
+}
+
+function RulesModal({ onClose }: { onClose: () => void }) {
+  const items: [string, string][] = [
+    ["🎯 מטרת המשחק", "להיות הקבוצה הראשונה שמגיעה לגביע 🏆 בסוף הנהר."],
+    ["👥 קבוצות", "משחקים 2 עד 4 קבוצות, לפחות שחקן אחד בכל קבוצה. יוצרים חדר, שולחים את הקוד (או קישור וואטסאפ) לחברים, וכולם מצטרפים מהטלפון."],
+    ["🪨 הלוח", "כולם מתחילים באבן הראשונה. כל אבן שייכת לקטגוריה לפי הצבע והאייקון שלה, והמילה שמסבירים נלקחת מהקטגוריה של האבן שבה הקבוצה עומדת."],
+    ["🗣️ התור", "בכל תור מסביר אחד מהקבוצה מסביר מילה אחת בכל פעם, בלי להגיד אותה, בלי מילים מאותו שורש ובלי תרגום. חברי הקבוצה מנחשים בקול, והזמן מוגבל בשעון."],
+    ["✅ ניקוד", "מילה שנוחשה = לוחצים \"נחשו\" והקבוצה מתקדמת אבן קדימה. דילוג מחזיר אבן אחורה (אפשר לכבות בהגדרות)."],
+    ["🔔 סוף הזמן", "ב-5 השניות האחרונות נשמעים צלצולים, ובסוף הסיבוב המסביר יכול לתקן מילים שסומנו בטעות."],
+    ["⭐ אבני כוכב", "קבוצה שנוחתת על אבן כוכב מקבלת סיבוב פנטומימה בתור הבא שלה: בלי מילים ובלי טיימר, המסביר מראה בתנועות 4 מילים, כל הקבוצות מנחשות, והקבוצה שניחשה ראשונה מתקדמת."],
+    ["🔁 מי מסביר", "אי אפשר לדלג על תור של קבוצה. אפשר רק להחליף את המסביר בתוך אותה קבוצה."],
+    ["🏆 ניצחון", "הראשונה שמגיעה לאבן האחרונה מנצחת. אפשר להתחיל משחק חוזר באותו חדר."],
+  ];
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-3" onClick={onClose} role="dialog" aria-modal="true" aria-label="חוקי המשחק">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-2xl font-extrabold text-brand-700 text-center mb-3">חוקי המשחק</h2>
+        <div className="space-y-3">
+          {items.map(([t, d]) => (
+            <div key={t}>
+              <p className="font-bold text-gray-900">{t}</p>
+              <p className="text-sm text-gray-600 leading-relaxed">{d}</p>
+            </div>
+          ))}
+        </div>
+        <button onClick={onClose} className="mt-5 w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl">הבנתי, בואו נשחק</button>
+      </div>
+    </div>
   );
 }
 
