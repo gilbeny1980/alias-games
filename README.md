@@ -62,13 +62,12 @@ app/globals.css            כולל אנימציית החול של שעון הח
 ## פריסה (אתר משלו ב-Vercel)
 
 1. ב-Vercel: **Add New → Project**, בוחרים את הריפו `alias-games`.
-2. ב-**Settings → Environment Variables** מוסיפים (לכל הסביבות, כולל Preview):
-   `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`.
-   את Redis אפשר ליצור בחינם ב-Upstash, או דרך Vercel → Storage.
+2. **מסד נתונים:** ב-**Storage** בוחרים **Turso** (או Upstash Redis), יוצרים מסד ומחברים לפרויקט בכל הסביבות.
+   Vercel מוסיף לבד את משתני הסביבה (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`). הטבלה נוצרת אוטומטית בשימוש הראשון.
 3. אופציונלי לפרסומות: `ADS_ADMIN_KEY` (ראו למטה).
 4. Deploy. הכתובת תהיה משהו כמו `https://alias-games.vercel.app`, ואפשר לחבר דומיין משלך.
 
-בלי Redis המשחק לא יעבוד כמו שצריך באתר חי, כי כל בקשה יכולה להגיע לשרת אחר.
+בלי מסד נתונים המשחק לא יעבוד באתר חי, כי כל בקשה יכולה להגיע לשרת אחר. לבדיקה: `/api/alias/health?check=1`.
 
 ## אבטחה
 
@@ -85,7 +84,7 @@ npm install
 npm run dev        # http://localhost:3000
 ```
 
-ללא משתני סביבה המשחק שומר חדרים בזיכרון (מתאים לפיתוח). בפרודקשן נדרשים:
+ללא משתני סביבה המשחק שומר חדרים בזיכרון (מתאים לפיתוח). בפרודקשן נדרש מסד נתונים: Turso או Upstash Redis.
 
 ```
 UPSTASH_REDIS_REST_URL=
