@@ -6,7 +6,6 @@ export class GameError extends Error {}
 
 export const MIN_PER_TEAM = 2;
 export const CARD_SIZE = 8;
-export const DICE_SIDES = 6;
 export const MAX_TEAMS = 4;
 export const MAX_PLAYERS = 20;
 export const DEFAULT_TEAM_NAMES = ["האדומים", "הכחולים", "הירוקים", "הצהובים"];
@@ -61,14 +60,11 @@ export function createRoom(code: string, hostName: string, password?: unknown): 
     hostId: player.id,
     players: [player],
     phase: "lobby",
-    targetScore: 40,
+    targetScore: 50,
     roundSeconds: 60,
     skipPenalty: true,
     teamCount: 2,
     teamNames: [...DEFAULT_TEAM_NAMES],
-    useDice: true,
-    roll: null,
-    rollId: 0,
     scores: [0, 0, 0, 0],
     turn: 0,
     nextExplainer: [0, 0, 0, 0],
@@ -99,16 +95,14 @@ export function roundScore(room: AliasRoom): number {
   return room.results.reduce((sum, r) => sum + (r.ok ? 1 : room.skipPenalty ? -1 : 0), 0);
 }
 
-// number (1-8) printed on the square the team stands on; the start square counts as 1
-export const slotFor = (position: number) => (position <= 0 ? 1 : ((position - 1) % CARD_SIZE) + 1);
+// Number (1-8) printed on the bubble a team stands on. Everybody starts on bubble 1,
+// and the numbers repeat 1-8 along the whole track, as on the real board.
+export const slotFor = (position: number) => (Math.max(0, position) % CARD_SIZE) + 1;
 
 function drawWord(room: AliasRoom): string {
   if (room.deck.length === 0) room.deck = buildDeck();
   room.card = room.deck.pop()!;
-  // dice mode: the die rolled at the start of the turn picks the word on every card of the turn
-  const slot = room.useDice ? room.roll ?? 1 : slotFor(room.scores[teamOf(room)]);
-  if (room.useDice) room.card = room.card.slice(0, DICE_SIDES);
-  return room.card[slot - 1];
+  return room.card[slotFor(room.scores[teamOf(room)]) - 1];
 }
 
 // Lazily ends a round whose time ran out. Safe to run on any copy.
@@ -132,7 +126,6 @@ function prepareTurn(room: AliasRoom) {
   }
   room.explainerId = list[room.nextExplainer[team] % list.length].id;
   room.nextExplainer[team] += 1;
-  room.roll = null; // a new turn needs a new roll
   room.phase = "ready";
   room.endsAt = null;
   room.word = null;
@@ -141,7 +134,6 @@ function prepareTurn(room: AliasRoom) {
 }
 
 function resetToLobby(room: AliasRoom) {
-  room.roll = null;
   room.phase = "lobby";
   room.scores = [0, 0, 0, 0];
   room.turn = 0;
@@ -211,7 +203,6 @@ export function applyAction(room: AliasRoom, playerId: string, a: Action): void 
       if (Number.isFinite(target)) room.targetScore = Math.min(100, Math.max(20, Math.round(target)));
       if (Number.isFinite(secs)) room.roundSeconds = Math.min(180, Math.max(20, Math.round(secs)));
       if (typeof a.skipPenalty === "boolean") room.skipPenalty = a.skipPenalty;
-      if (typeof a.useDice === "boolean") room.useDice = a.useDice;
       const count = Number(a.teamCount);
       if (Number.isInteger(count) && count >= 2 && count <= MAX_TEAMS && count !== room.teamCount) {
         room.teamCount = count;
@@ -231,18 +222,8 @@ export function applyAction(room: AliasRoom, playerId: string, a: Action): void 
       prepareTurn(room);
       break;
     }
-    case "roll": {
-      // one roll per turn, by the explainer, before the clock starts; no re-rolls
-      if (room.phase !== "ready" || !isExplainer) throw new GameError("לא התור שלך");
-      if (!room.useDice) throw new GameError("מצב קובייה כבוי");
-      if (room.roll !== null) throw new GameError("כבר הוטלה קובייה בתור הזה");
-      room.roll = 1 + Math.floor(Math.random() * DICE_SIDES);
-      room.rollId += 1;
-      break;
-    }
     case "begin": {
       if (room.phase !== "ready" || !isExplainer) throw new GameError("לא התור שלך");
-      if (room.useDice && room.roll === null) throw new GameError("קודם מטילים קובייה");
       room.phase = "playing";
       room.endsAt = Date.now() + room.roundSeconds * 1000;
       room.results = [];
@@ -345,11 +326,8 @@ export function viewFor(room: AliasRoom, playerId: string | null): AliasView {
     explainerId: copy.explainerId,
     endsAt: copy.endsAt,
     word: copy.phase === "playing" && canSee ? copy.word : null,
-    useDice: copy.useDice,
-    roll: copy.roll,
-    rollId: copy.rollId,
     isReferee,
-    slot: copy.useDice ? (copy.roll ?? 0) : slotFor(copy.scores[teamOf(copy)]), // 0 = not rolled yet
+    slot: slotFor(copy.scores[teamOf(copy)]),
     card: copy.phase === "playing" && canSee ? copy.card : null,
     results: revealResults ? copy.results : [],
     roundScore: roundScore(copy),

@@ -1,11 +1,10 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Copy, Crown, Loader2, LogOut, MessageCircle, SkipForward, Trophy, Users, Volume2, VolumeX } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Check, Copy, Crown, Loader2, LogOut, MessageCircle, SkipForward, Trophy, Users } from "lucide-react";
 import type { AliasView, TeamId } from "@/types/alias";
 import Splash, { Hourglass } from "./Splash";
 import AliasLogo, { AliasBadge } from "./AliasLogo";
 import AdSlot from "./AdSlot";
-import Dice, { isMuted, resetDice, setMuted, unlockAudio } from "./Dice";
 
 const TEAM_STYLE = [
   { bg: "bg-red-800", soft: "bg-red-50 border-red-200", text: "text-red-800", dot: "🔴" },
@@ -54,12 +53,6 @@ export default function AliasClient() {
     setReady(true);
   }, []);
 
-  useEffect(() => {
-    const unlock = () => unlockAudio();
-    document.addEventListener("pointerdown", unlock);
-    return () => document.removeEventListener("pointerdown", unlock);
-  }, []);
-
   const applyView = useCallback((v: AliasView) => {
     offset.current = v.serverNow - Date.now();
     setView(v);
@@ -67,7 +60,6 @@ export default function AliasClient() {
 
   const leaveLocal = useCallback(() => {
     try { localStorage.removeItem(STORE_KEY); } catch {}
-    resetDice();
     setSaved(null);
     setView(null);
   }, []);
@@ -296,25 +288,12 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
   const isHost = view.me?.id === view.hostId;
   const isExplainer = view.me?.id === view.explainerId;
   const explainer = view.players.find((p) => p.id === view.explainerId);
-  const [settled, setSettled] = useState("");
-  const [muted, setMutedState] = useState(false);
-  useEffect(() => setMutedState(isMuted()), []);
-  const rollKey = `${view.code}:${view.rollId}`;
-  // with the dice, the explainer sees the word only after the die has landed
-  const revealed = !view.useDice || settled === rollKey;
 
   return (
     <div className="space-y-4 pb-8">
       <div className="flex items-center justify-between text-white pt-2">
         <div className="text-white"><AliasBadge /></div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => { unlockAudio(); setMuted(!muted); setMutedState(!muted); }}
-            className="p-2 bg-white/10 rounded-lg"
-            aria-label={muted ? "הפעלת צליל" : "השתקה"}
-          >
-            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </button>
           <CodeChip code={view.code} hasPassword={view.hasPassword} />
           <button
             onClick={() => confirm("לצאת מהמשחק?") && act("leave")}
@@ -334,56 +313,27 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
         {view.phase === "ready" && (
           <Centered>
             <TeamBadge view={view} team={view.activeTeam} />
-            {view.useDice && view.roll !== null && (
-              <div className="flex items-center gap-3 mt-3 mb-1">
-                <Dice value={view.roll} rollKey={rollKey} onSettled={setSettled} size={84} />
-                {revealed ? (
-                  <span className="text-sm text-gray-600">יצא <b className="text-3xl text-gray-900">{view.roll}</b></span>
-                ) : (
-                  <span className="w-16" />
-                )}
-              </div>
-            )}
             {isExplainer ? (
               <>
                 <h2 className="text-2xl font-bold">התור שלך להסביר!</h2>
-                {view.useDice ? (
-                  view.roll === null ? (
-                    <>
-                      <p className="text-gray-500 text-sm">
-                        מטילים קובייה. המספר שיצא קובע איזו מילה מסבירים בכל קלף, במשך כל התור. אפשר להטיל פעם אחת בלבד.
-                      </p>
-                      <BigButton onClick={() => act("roll")} disabled={busy} color="bg-red-600">🎲 הטל קובייה</BigButton>
-                    </>
-                  ) : revealed ? (
-                    <>
-                      <p className="text-gray-500 text-sm">
-                        יצא <b>{view.roll}</b>! מסבירים את המילה מספר {view.roll} בכל קלף. בלי להגיד את המילה עצמה. יש לכם {view.roundSeconds} שניות.
-                      </p>
-                      <BigButton onClick={() => act("begin")} disabled={busy} color="bg-green-600">התחל סיבוב</BigButton>
-                    </>
-                  ) : (
-                    <p className="text-lg font-bold py-2">🎲 מטילים קובייה...</p>
-                  )
-                ) : (
-                  <>
-                    <p className="text-gray-500 text-sm">
-                      {`לפי המקום של הקבוצה על המסלול, מסבירים את המילה מספר ${view.slot} בכל קלף. `}
-                      בלי להגיד את המילה עצמה. יש לכם {view.roundSeconds} שניות.
-                    </p>
-                    <BigButton onClick={() => act("begin")} disabled={busy} color="bg-green-600">התחל סיבוב</BigButton>
-                  </>
-                )}
+                <div className="flex items-center gap-3 bg-red-50 border-2 border-red-200 rounded-2xl px-5 py-3">
+                  <span className="text-sm text-gray-600">הקבוצה עומדת על בועה</span>
+                  <span className="w-12 h-12 rounded-full bg-white border-2 border-red-300 text-red-600 text-2xl font-black flex items-center justify-center shadow">
+                    {view.slot}
+                  </span>
+                </div>
+                <p className="text-gray-500 text-sm">
+                  מסבירים את המילה מספר {view.slot} בכל קלף. בלי להגיד את המילה עצמה. יש לכם {view.roundSeconds} שניות.
+                </p>
+                <BigButton onClick={() => act("begin")} disabled={busy} color="bg-green-600">התחל סיבוב</BigButton>
               </>
             ) : (
               <>
                 <h2 className="text-2xl font-bold">{explainer?.name ?? "..."} מסביר/ה</h2>
                 <p className="text-gray-500 text-sm">
-                  {view.useDice && view.roll === null
-                    ? `ממתינים ש${explainer?.name ?? "המסביר"} יטיל קובייה 🎲`
-                    : view.me?.team === view.activeTeam
-                      ? "אתם הקבוצה המנחשת — היו מוכנים!"
-                      : "הקבוצה שלכם צופה. אפשר לוודא שלא מרמים 😉"}
+                  {view.me?.team === view.activeTeam
+                    ? `אתם הקבוצה המנחשת (בועה ${view.slot}), היו מוכנים!`
+                    : "הקבוצה שלכם צופה. אפשר לוודא שלא מרמים 😉"}
                 </p>
                 <button onClick={() => act("skipExplainer")} disabled={busy} className="text-xs text-gray-400 underline">
                   המסביר לא מגיב? החליפו תור
@@ -403,15 +353,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
                 {secondsLeft}
               </div>
             </div>
-            {view.useDice && view.roll !== null && (
-              <div className="flex items-center gap-3">
-                <Dice value={view.roll} rollKey={rollKey} onSettled={setSettled} />
-                {revealed ? <span className="text-sm text-gray-600">יצא <b className="text-2xl text-gray-900">{view.roll}</b></span> : <span className="w-16" />}
-              </div>
-            )}
-            {isExplainer && !revealed ? (
-              <p className="text-lg font-bold py-6">🎲 מטילים קובייה...</p>
-            ) : isExplainer && view.card && view.word ? (
+            {isExplainer && view.card && view.word ? (
               <>
                 <AliasCard card={view.card} slot={view.slot} />
                 <div className="grid grid-cols-2 gap-3 w-full">
@@ -572,15 +514,6 @@ function Lobby({ view, isHost, act, busy }: { view: AliasView; isHost: boolean; 
             <Stepper value={view.roundSeconds} step={10} min={20} max={180} onChange={(v) => act("settings", { roundSeconds: v })} />
           </label>
           <label className="flex items-center justify-between text-sm">
-            🎲 קובייה (הטלה אחת בכל תור קובעת את מספר המילה)
-            <input
-              type="checkbox"
-              checked={view.useDice}
-              onChange={(e) => act("settings", { useDice: e.target.checked })}
-              className="w-5 h-5 accent-red-600"
-            />
-          </label>
-          <label className="flex items-center justify-between text-sm">
             דילוג מחזיר צעד אחורה
             <input
               type="checkbox"
@@ -595,7 +528,7 @@ function Lobby({ view, isHost, act, busy }: { view: AliasView; isHost: boolean; 
         </div>
       ) : (
         <p className="text-center text-gray-500 text-sm border-t pt-4">
-          {view.teamCount} קבוצות · אורך הלוח: {view.targetScore} משבצות · {view.roundSeconds} שניות לתור{view.useDice ? " · מצב קובייה 🎲" : ""}
+          {view.teamCount} קבוצות · אורך הלוח: {view.targetScore} משבצות · {view.roundSeconds} שניות לתור
           <br />
           ממתינים שהמארח יתחיל...
         </p>
@@ -714,85 +647,129 @@ function AliasCard({ card, slot }: { card: string[]; slot: number }) {
   );
 }
 
-// The board: a winding road from START to the finish flag. Every step is a small dot on the road,
-// and each team's piece sits on the step it has reached (it glides when the team moves).
-const ROAD_COLS = 8;
-const ROAD_W = 360;
-const ROAD_PAD = 30;
-const ROAD_DX = (ROAD_W - 2 * ROAD_PAD) / (ROAD_COLS - 1);
-const ROAD_DY = 50;
-const ROAD_TOP = 40;
+// ── The board, like the real one: a red spiral of speech bubbles numbered 1-8 (repeating) ──
+// Everybody starts on the big first bubble; the finish flag is at the centre of the spiral.
+const BOARD_W = 360;
+const BOARD_PAD = 30;
+const BUBBLE_R = 14;
+const MIN_STEP = 36; // distance between neighbouring bubbles along the track
+const RING_GAP = 72; // two bubble-steps between one lap and the next, as on the real board
 
-// step i -> position on the road; rows snake back and forth, starting on the right (RTL)
-function roadPoint(i: number) {
-  const row = Math.floor(i / ROAD_COLS);
-  const col = i % ROAD_COLS;
-  const x = row % 2 === 0 ? ROAD_W - ROAD_PAD - col * ROAD_DX : ROAD_PAD + col * ROAD_DX;
-  return { x, y: ROAD_TOP + row * ROAD_DY };
+type Pt = { x: number; y: number };
+
+// Rectangular spiral polyline: down, left, up, right (stopping a gap early), then one lap further in.
+function spiralPolyline(W: number, H: number): Pt[] {
+  let x0 = 0, x1 = W, y0 = 0, y1 = H;
+  const pts: Pt[] = [{ x: x1, y: y0 }];
+  while (x1 - x0 > RING_GAP && y1 - y0 > RING_GAP) {
+    pts.push({ x: x1, y: y1 }, { x: x0, y: y1 }, { x: x0, y: y0 });
+    if (x1 - RING_GAP > x0) pts.push({ x: x1 - RING_GAP, y: y0 });
+    x1 -= RING_GAP; y1 -= RING_GAP; x0 += RING_GAP; y0 += RING_GAP;
+  }
+  return pts;
 }
+
+const pathLength = (pts: Pt[]) => pts.slice(1).reduce((n, p, i) => n + Math.hypot(p.x - pts[i].x, p.y - pts[i].y), 0);
+
+// `count` bubbles spread evenly along the spiral, the last one exactly at its centre end
+function trackPoints(count: number): { pts: Pt[]; height: number } {
+  const W = BOARD_W - 2 * BOARD_PAD;
+  let poly = spiralPolyline(W, 120);
+  for (let H = 120; H < 4000; H += 10) {
+    poly = spiralPolyline(W, H);
+    if (pathLength(poly) >= count * MIN_STEP) break;
+  }
+  const step = pathLength(poly) / count;
+  const pts: Pt[] = [];
+  let seg = 0;
+  let segStart = 0;
+  for (let i = 0; i <= count; i++) {
+    const d = i * step;
+    while (seg < poly.length - 2 && d > segStart + Math.hypot(poly[seg + 1].x - poly[seg].x, poly[seg + 1].y - poly[seg].y) + 1e-6) {
+      segStart += Math.hypot(poly[seg + 1].x - poly[seg].x, poly[seg + 1].y - poly[seg].y);
+      seg++;
+    }
+    const a = poly[seg], b = poly[seg + 1];
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const t = Math.min(1, Math.max(0, (d - segStart) / len));
+    pts.push({ x: BOARD_PAD + a.x + (b.x - a.x) * t, y: 58 + a.y + (b.y - a.y) * t });
+  }
+  const bottom = Math.max(...poly.map((p) => p.y));
+  return { pts, height: 58 + bottom + BOARD_PAD };
+}
+
+const TEAM_PAWN = ["#7f1d1d", "#2563eb", "#16a34a", "#f59e0b"];
+const PAWN_CORNER = [[11, -11], [-11, -11], [11, 11], [-11, 11]];
 
 function Board({ view }: { view: AliasView }) {
   const total = view.targetScore;
-  const pts = Array.from({ length: total + 1 }, (_, i) => roadPoint(i));
-  const height = pts[total].y + 46;
-  const d = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)} ${p.y}`).join(" ");
-  const finish = pts[total];
-  const start = pts[0];
+  const { pts, height } = useMemo(() => trackPoints(total), [total]);
   const teams = teamsOf(view);
+  const start = pts[0];
+  const finish = pts[total];
 
   return (
-    <div className="bg-white/95 rounded-2xl p-3 shadow-lg">
-      <svg viewBox={`0 0 ${ROAD_W} ${height}`} className="w-full h-auto" role="img" aria-label="מסלול המשחק">
-        {/* grass */}
-        <rect x="0" y="0" width={ROAD_W} height={height} rx="14" fill="#ecfccb" />
-        {/* the road: edge, asphalt, dashed centre line */}
-        <path d={d} fill="none" stroke="#9ca3af" strokeWidth="32" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={d} fill="none" stroke="#374151" strokeWidth="26" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={d} fill="none" stroke="#fff" strokeOpacity="0.85" strokeWidth="2" strokeDasharray="7 8" strokeLinecap="round" strokeLinejoin="round" />
-        {/* one dot per step */}
-        {pts.slice(1, total).map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="2.4" fill="#fbbf24" />
-        ))}
+    <div className="bg-white/10 rounded-2xl p-2 shadow-lg">
+      <svg viewBox={`0 0 ${BOARD_W} ${height}`} className="w-full h-auto" role="img" aria-label="לוח המשחק">
+        <defs>
+          <radialGradient id="boardGlow" cx="50%" cy="45%" r="75%">
+            <stop offset="0" stopColor="#ef4444" />
+            <stop offset="1" stopColor="#b91c1c" />
+          </radialGradient>
+        </defs>
+        <rect x="0" y="0" width={BOARD_W} height={height} rx="16" fill="url(#boardGlow)" stroke="#fecaca" strokeOpacity="0.5" strokeWidth="2" />
 
-        {/* start */}
-        <g transform={`translate(${start.x} ${start.y})`}>
-          <circle r="15" fill="#16a34a" stroke="#fff" strokeWidth="3" />
-          <text y="4.5" textAnchor="middle" fontSize="12" fontWeight="800" fill="#fff">▶</text>
+        {/* a faint line joining the bubbles shows the way */}
+        <polyline points={pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")} fill="none" stroke="#fff" strokeOpacity="0.18" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* the bubbles: number 1-8 repeating, a little speech-bubble tail at the bottom left */}
+        {pts.map((p, i) => {
+          if (i === 0 || i === total) return null;
+          return (
+            <g key={i} transform={`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`}>
+              <path d="M-9 8 L-17 18 L-3 13 Z" fill="#fff7ed" />
+              <circle r={BUBBLE_R} fill="#fff7ed" />
+              <text y="5.2" textAnchor="middle" fontSize="15" fontWeight="800" fill="#dc2626">{(i % 8) + 1}</text>
+            </g>
+          );
+        })}
+
+        {/* start: the big first bubble */}
+        <g transform={`translate(${start.x.toFixed(1)} ${start.y.toFixed(1)})`}>
+          <circle r="27" fill="#fff" opacity="0.28" />
+          <path d="M-12 11 L-23 25 L-4 18 Z" fill="#fff" />
+          <circle r="20" fill="#fff" />
+          <text y="7" textAnchor="middle" fontSize="21" fontWeight="900" fill="#dc2626">1</text>
         </g>
-        <g transform={`translate(${start.x - 14} ${start.y - 29})`}>
-          <rect x="-30" y="-11" width="60" height="22" rx="11" fill="#16a34a" />
+        <g transform={`translate(${(start.x - 14).toFixed(1)} ${(start.y - 40).toFixed(1)})`}>
+          <rect x="-30" y="-12" width="60" height="24" rx="12" fill="#16a34a" stroke="#fff" strokeWidth="2" />
           <text y="5" textAnchor="middle" fontSize="13" fontWeight="800" fill="#fff">התחלה</text>
         </g>
 
-        {/* finish: checkered flag */}
-        <g transform={`translate(${finish.x} ${finish.y})`}>
-          <circle r="17" fill="#fde047" stroke="#fff" strokeWidth="3" />
-          <text y="7" textAnchor="middle" fontSize="20">🏁</text>
+        {/* finish: the flag in the middle of the spiral */}
+        <g transform={`translate(${finish.x.toFixed(1)} ${finish.y.toFixed(1)})`}>
+          <circle r="25" fill="#fde047" opacity="0.35" />
+          <circle r="19" fill="#fde047" stroke="#fff" strokeWidth="3" />
+          <text y="7" textAnchor="middle" fontSize="21">🏁</text>
         </g>
 
-        {/* the teams' pieces, side by side when they share a step */}
+        {/* the teams' pawns sit in the corners of their bubble, so the number stays readable */}
         {teams.map((t) => {
-          const at = Math.min(view.scores[t], total);
-          const sharing = teams.filter((u) => Math.min(view.scores[u], total) === at);
-          const offset = (sharing.indexOf(t) - (sharing.length - 1) / 2) * 13;
-          const p = pts[at];
-          const color = ["#991b1b", "#2563eb", "#16a34a", "#f59e0b"][t];
+          const p = pts[Math.min(view.scores[t], total)];
+          const [dx, dy] = PAWN_CORNER[t];
           return (
-            <g
-              key={t}
-              style={{ transform: `translate(${p.x + offset}px, ${p.y}px)`, transition: "transform 0.9s ease-in-out" }}
-            >
-              <ellipse cx="0" cy="11" rx="8" ry="3" fill="#000" opacity="0.25" />
-              <circle r="9.5" fill={color} stroke="#fff" strokeWidth="3" />
+            <g key={t} style={{ transform: `translate(${p.x + dx}px, ${p.y + dy}px)`, transition: "transform 0.9s ease-in-out" }}>
+              <circle r="8" fill={TEAM_PAWN[t]} stroke="#fff" strokeWidth="2.5" />
               {view.activeTeam === t && view.phase !== "finished" && (
-                <circle r="14" fill="none" stroke="#fff" strokeWidth="2" strokeDasharray="3 3" opacity="0.9" />
+                <circle r="12.5" fill="none" stroke="#fff" strokeWidth="2" strokeDasharray="3 3" />
               )}
             </g>
           );
         })}
       </svg>
-      <p className="text-[11px] text-gray-500 mt-1 text-center">
-        כל מילה שנוחשה מקדמת את הקבוצה צעד על המסלול{view.skipPenalty ? ", ודילוג מחזיר צעד אחורה" : ""}. הראשונה שמגיעה לדגל מנצחת.
+      <p className="text-[11px] text-white/90 mt-2 text-center px-2">
+        כולם מתחילים בבועה 1. כל מילה שנוחשה מקדמת צעד{view.skipPenalty ? ", וכל דילוג מחזיר צעד אחורה" : ""}.
+        המספר על הבועה קובע איזו מילה מסבירים בכל קלף. הראשונה שמגיעה לדגל במרכז מנצחת.
       </p>
     </div>
   );

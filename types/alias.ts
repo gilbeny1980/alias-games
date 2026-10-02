@@ -23,9 +23,6 @@ export interface AliasRoom {
   skipPenalty: boolean;
   teamCount: number; // 2-4
   teamNames: string[]; // always 4 entries, the first teamCount are in play
-  useDice: boolean; // a die roll (1-6) picks the word of each card instead of the board square
-  roll: number | null;
-  rollId: number; // increments on every roll so clients can animate it
   scores: number[]; // each team's square on the board (0 = start)
   turn: number; // global turn counter; team = turn % 2
   nextExplainer: number[]; // rotation index per team
@@ -57,11 +54,8 @@ export interface AliasView {
   hasPassword: boolean;
   teamCount: number;
   teamNames: string[];
-  useDice: boolean;
-  roll: number | null;
-  rollId: number;
   isReferee: boolean; // on the other team: sees the word live to check for cheating
-  slot: number; // 1-8: which word of each card the active team explains
+  slot: number; // 1-8: the number on the bubble the active team stands on = which word of each card it explains
   card: string[] | null; // only for the explainer and the opposing team, only while playing
   scores: number[];
   turn: number;
