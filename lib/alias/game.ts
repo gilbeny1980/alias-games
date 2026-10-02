@@ -317,11 +317,16 @@ export function applyAction(room: AliasRoom, playerId: string, a: Action): void 
       }
       break;
     }
-    case "skipExplainer": {
-      // unblocks the game if the explainer disconnected
+    case "setExplainer": {
+      // Nobody can skip a team's turn. The only change allowed: hand the explaining over to ANOTHER member
+      // of the SAME team, before the round starts. A teammate (or the host) can do it, so a team can
+      // recover if its explainer is away from the phone.
       if (room.phase !== "ready") throw new GameError("אפשר להחליף מסביר רק לפני תחילת הסיבוב");
-      room.turn += 1;
-      prepareTurn(room);
+      if (!(isHost || me.team === teamOf(room))) throw new GameError("רק חבר בקבוצה שהתור שלה יכול להחליף מסביר");
+      const target = room.players.find((p) => p.id === a.target);
+      if (!target || target.team !== teamOf(room)) throw new GameError("אפשר לבחור רק שחקן מאותה קבוצה");
+      if (target.id === room.explainerId) throw new GameError("השחקן הזה כבר המסביר");
+      room.explainerId = target.id;
       break;
     }
     case "rematch": {

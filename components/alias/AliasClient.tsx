@@ -395,9 +395,6 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
                   <p className="text-gray-500 text-sm">
                     {view.teamNames[view.activeTeam]} נחתו על בועה עם מסגרת, והתור שלהם הוא סיבוב מיוחד: כל הקבוצות מנחשות 5 מילים! היו מוכנים.
                   </p>
-                  <button onClick={() => act("skipExplainer")} disabled={busy} className="text-xs text-gray-400 underline">
-                    המסביר לא מגיב? החליפו תור
-                  </button>
                 </>
               )
             ) : isExplainer ? (
@@ -422,11 +419,9 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
                     ? `אתם הקבוצה המנחשת (בועה ${view.slot}), היו מוכנים!`
                     : "הקבוצה שלכם צופה. אפשר לוודא שלא מרמים 😉"}
                 </p>
-                <button onClick={() => act("skipExplainer")} disabled={busy} className="text-xs text-gray-400 underline">
-                  המסביר לא מגיב? החליפו תור
-                </button>
               </>
             )}
+            <ExplainerPicker view={view} act={act} busy={busy} />
           </Centered>
         )}
 
@@ -946,6 +941,35 @@ function TeamBadge({ view, team }: { view: AliasView; team: TeamId }) {
     <span className={`inline-block text-xs font-bold text-white px-3 py-1 rounded-full ${TEAM_STYLE[team].bg}`}>
       התור של {view.teamNames[team]}
     </span>
+  );
+}
+
+// "Change the explainer": only to another player of the SAME team (nobody can skip a team's turn)
+function ExplainerPicker({ view, act, busy }: { view: AliasView; act: ActFn; busy: boolean }) {
+  const [open, setOpen] = useState(false);
+  const mine = view.me?.id === view.hostId || view.me?.team === view.activeTeam;
+  const mates = view.players.filter((p) => p.team === view.activeTeam && p.id !== view.explainerId);
+  if (!mine || mates.length === 0) return null;
+  return (
+    <div className="w-full text-center">
+      <button onClick={() => setOpen(!open)} className="text-xs text-gray-500 underline">
+        {open ? "סגור" : "להחליף את המסביר בשחקן אחר מהקבוצה?"}
+      </button>
+      {open && (
+        <div className="mt-2 flex flex-wrap justify-center gap-2">
+          {mates.map((p) => (
+            <button
+              key={p.id}
+              disabled={busy}
+              onClick={() => { act("setExplainer", { target: p.id }); setOpen(false); }}
+              className={`${TEAM_STYLE[view.activeTeam].bg} text-white text-sm font-bold rounded-full px-4 py-1.5`}
+            >
+              {p.name} יסביר/ה
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
