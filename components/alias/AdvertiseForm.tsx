@@ -46,7 +46,7 @@ export default function AdvertiseForm() {
 
   return (
     <form onSubmit={submit} className="bg-white rounded-3xl p-6 space-y-3">
-      <h1 className="text-2xl font-extrabold text-center">לפרסם ב-Alias Games</h1>
+      <h1 className="text-2xl font-extrabold text-center">לפרסם ב״יובל״</h1>
       <p className="text-gray-600 text-sm text-center">
         המשחק מציג את הפרסומת לשחקנים, והתשלום הוא לפי כניסות: כל שחקן שנכנס לקישור שלכם דרך המשחק נספר. המחיר נקבע מול בעל המשחק.
       </p>

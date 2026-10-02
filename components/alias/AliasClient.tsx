@@ -2,8 +2,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Copy, Crown, Loader2, LogOut, MessageCircle, SkipForward, Trophy, Users, Volume2, VolumeX } from "lucide-react";
 import type { AliasView, TeamId } from "@/types/alias";
-import Splash, { Hourglass } from "./Splash";
-import AliasLogo, { AliasBadge } from "./AliasLogo";
+import Splash from "./Splash";
+import ClockTimer from "./ClockTimer";
+import YuvalLogo, { YuvalBadge } from "./YuvalLogo";
 import { specialSteps } from "@/lib/alias/track";
 import { isMuted, playTick, playTimeUp, setMuted, speak, unlockAudio } from "./sound";
 import AdSlot from "./AdSlot";
@@ -241,7 +242,7 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
   return (
     <Shell>
       <div className="pt-6 mb-5">
-        <AliasLogo size={230} />
+        <YuvalLogo size={230} />
       </div>
       <div className="bg-white rounded-3xl shadow-2xl p-6 space-y-4">
         {inviteCode && (
@@ -348,7 +349,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
   return (
     <div className="space-y-4 pb-8">
       <div className="flex items-center justify-between text-white pt-2">
-        <div className="text-white"><AliasBadge /></div>
+        <div className="text-white"><YuvalBadge /></div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => { unlockAudio(); setMuted(!muted); setMutedState(!muted); }}
@@ -429,8 +430,8 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
           <Centered>
             <TeamBadge view={view} team={view.activeTeam} />
             <div className="flex items-center gap-5">
-              {/* key restarts the sand when a new turn starts; elapsed keeps it in step with the server clock */}
-              <Hourglass key={view.turn} seconds={view.roundSeconds} size={72} glass="#dc2626" elapsed={view.roundSeconds - msLeft / 1000} />
+              {/* key restarts the clock when a new turn starts; elapsed keeps it in step with the server clock */}
+              <ClockTimer key={view.turn} seconds={view.roundSeconds} size={84} elapsed={view.roundSeconds - msLeft / 1000} urgent={secondsLeft > 0 && secondsLeft <= 5} />
               <div className={`text-6xl font-extrabold tabular-nums ${secondsLeft <= 10 ? "text-red-600" : "text-gray-800"}`}>
                 {secondsLeft}
               </div>
@@ -1024,7 +1025,7 @@ function Stepper({ value, step, min, max, onChange }: { value: number; step: num
 // Invite text + link; the link carries only the room code, never the password
 function inviteText(code: string, hasPassword: boolean) {
   const url = `${location.origin}/?room=${code}`;
-  return `בואו לשחק איתי Alias Games! 🗣️\nקוד חדר: ${code}\n${url}${hasPassword ? "\n(החדר מוגן בסיסמה, הסיסמה אצלי)" : ""}`;
+  return `בואו לשחק איתי ביובל! 🗣️\nקוד חדר: ${code}\n${url}${hasPassword ? "\n(החדר מוגן בסיסמה, הסיסמה אצלי)" : ""}`;
 }
 
 function WhatsAppInvite({ code, hasPassword }: { code: string; hasPassword: boolean }) {

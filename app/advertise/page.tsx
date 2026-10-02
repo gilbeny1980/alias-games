@@ -1,6 +1,6 @@
 import AdvertiseForm from "@/components/alias/AdvertiseForm";
 
-export const metadata = { title: "לפרסם ב-Alias Games", robots: { index: false } };
+export const metadata = { title: "לפרסם ב״יובל״", robots: { index: false } };
 
 export default function AdvertisePage() {
   return (

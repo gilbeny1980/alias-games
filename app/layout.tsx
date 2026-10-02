@@ -9,16 +9,16 @@ const SITE =
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
-  title: "Alias Games - משחק מילים",
+  title: "יובל - משחק מילים",
   description: "משחק הסברת מילים בקבוצות, אונליין עם חברים",
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Alias Games" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "יובל" },
   icons: { apple: "/apple-touch-icon.png", icon: "/icon-192.png" },
   openGraph: {
-    title: "Alias Games - משחק מילים",
-    description: "מצטרפים לחדר ומשחקים אליאס עם חברים, ישר מהטלפון",
+    title: "יובל - משחק מילים",
+    description: "מצטרפים לחדר ומשחקים יובל עם חברים, ישר מהטלפון",
     url: "/",
-    siteName: "Alias Games",
+    siteName: "יובל",
     locale: "he_IL",
     type: "website",
     images: [{ url: "/icon-512.png", width: 512, height: 512 }],

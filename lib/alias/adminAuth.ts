@@ -70,15 +70,15 @@ export async function sendLoginEmail(link: string): Promise<void> {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: process.env.MAIL_FROM || "Alias Games <onboarding@resend.dev>",
+      from: process.env.MAIL_FROM || "Yuval <onboarding@resend.dev>",
       to: [adminEmail()],
-      subject: "קישור כניסה לדשבורד Alias Games",
+      subject: "קישור כניסה לדשבורד יובל",
       html: `<div dir="rtl" style="font-family:Arial,sans-serif;font-size:16px">
-        <h2>כניסה לדשבורד Alias Games</h2>
+        <h2>כניסה לדשבורד יובל</h2>
         <p>לחצו על הכפתור כדי להיכנס. הקישור בתוקף ל-15 דקות ופועל פעם אחת בלבד.</p>
         <p><a href="${link}" style="display:inline-block;background:#dc2626;color:#fff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:bold">כניסה לדשבורד</a></p>
         <p style="color:#666;font-size:13px">אם לא ביקשתם להיכנס, אפשר להתעלם מהמייל.</p></div>`,
-      text: `כניסה לדשבורד Alias Games: ${link}\n(בתוקף ל-15 דקות, פעם אחת)`,
+      text: `כניסה לדשבורד יובל: ${link}\n(בתוקף ל-15 דקות, פעם אחת)`,
     }),
   });
   if (!res.ok) {

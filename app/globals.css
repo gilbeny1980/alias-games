@@ -17,7 +17,7 @@ button {
   touch-action: manipulation;
 }
 
-/* hourglass sand animation (duration is set per use) */
-@keyframes sand-top { from { transform: translateY(0); } to { transform: translateY(46px); } }
-@keyframes sand-bottom { from { transform: translateY(30px); } to { transform: translateY(0); } }
-@keyframes sand-stream { 0%, 96% { opacity: 1; } 100% { opacity: 0; } }
+/* clock timer: hand, shrinking arc, and the arc turning from green to red (duration set per use) */
+@keyframes clock-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes clock-arc { from { stroke-dasharray: 251.33 251.33; } to { stroke-dasharray: 0.01 251.33; } }
+@keyframes clock-color { 0% { stroke: #22c55e; } 50% { stroke: #22c55e; } 75% { stroke: #f59e0b; } 100% { stroke: #ef4444; } }
