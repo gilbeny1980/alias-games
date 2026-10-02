@@ -14,15 +14,15 @@ export default function Splash({ onDone }: { onDone: () => void }) {
   return (
     <div
       onClick={onDone}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-gradient-to-br from-red-500 via-red-600 to-red-700 text-white animate-fade-in"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 app-bg text-white animate-fade-in"
     >
       <YuvalLogo size={250} />
       <ClockTimer seconds={SPLASH_SECONDS} size={92} />
-      <p className="text-red-100 text-lg">
+      <p className="text-brand-100 text-lg">
         פותח ע״י <span className="font-bold text-white">גיל בן יהודה</span>
-        <span className="block text-sm text-red-100/90" dir="ltr">gilbeny@gmail.com</span>
+        <span className="block text-sm text-brand-100/90" dir="ltr">gilbeny@gmail.com</span>
       </p>
-      <p className="text-red-200/70 text-xs absolute bottom-8">לחצו כדי לדלג</p>
+      <p className="text-brand-200/70 text-xs absolute bottom-8">לחצו כדי לדלג</p>
     </div>
   );
 }

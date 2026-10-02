@@ -7,15 +7,15 @@ export function YuvalEmblem({ size = 120 }: { size?: number }) {
   const wave = (y: number, shift: number) =>
     `M${34 + shift} ${y} C ${58 + shift} ${y - 28}, ${84 + shift} ${y + 28}, ${108 + shift} ${y} S ${150 + shift} ${y - 26}, ${166} ${y - 4}`;
   return (
-    <svg width={size} height={size} viewBox="0 0 200 200" role="img" aria-label="יובל" className="drop-shadow-[0_8px_16px_rgba(30,27,75,0.45)]">
+    <svg width={size} height={size} viewBox="0 0 200 200" role="img" aria-label="יובל" className="drop-shadow-[0_10px_20px_rgba(15,10,60,0.5)]">
       <defs>
         <linearGradient id={`${id}b`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#3730a3" />
-          <stop offset="1" stopColor="#1e1b4b" />
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="1" stopColor="#e0e7ff" />
         </linearGradient>
         <linearGradient id={`${id}1`} x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stopColor="#fbbf24" />
-          <stop offset="1" stopColor="#fb7185" />
+          <stop offset="1" stopColor="#f43f5e" />
         </linearGradient>
         <linearGradient id={`${id}2`} x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stopColor="#fb7185" />
@@ -27,12 +27,12 @@ export function YuvalEmblem({ size = 120 }: { size?: number }) {
         </linearGradient>
       </defs>
       <rect x="8" y="8" width="184" height="184" rx="56" fill={`url(#${id}b)`} />
-      <rect x="8" y="8" width="184" height="184" rx="56" fill="none" stroke="#fff" strokeOpacity="0.18" strokeWidth="2" />
+      <rect x="8" y="8" width="184" height="184" rx="56" fill="none" stroke="#c7d2fe" strokeOpacity="0.9" strokeWidth="2" />
       <path d={wave(74, 0)} fill="none" stroke={`url(#${id}1)`} strokeWidth="15" strokeLinecap="round" />
       <path d={wave(106, -6)} fill="none" stroke={`url(#${id}2)`} strokeWidth="15" strokeLinecap="round" />
       <path d={wave(138, 4)} fill="none" stroke={`url(#${id}3)`} strokeWidth="15" strokeLinecap="round" />
       {/* the spark: an idea / a guessed word */}
-      <path d="M150 30 L156 45 L171 51 L156 57 L150 72 L144 57 L129 51 L144 45 Z" fill="#fff" />
+      <path d="M150 30 L156 45 L171 51 L156 57 L150 72 L144 57 L129 51 L144 45 Z" fill="#7c3aed" />
     </svg>
   );
 }
