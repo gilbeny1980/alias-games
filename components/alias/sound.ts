@@ -1,6 +1,7 @@
 // Sounds, synthesised in the browser (no audio files): the last-5-seconds countdown and the
 // "time is up" buzzer. Browsers only allow sound after a tap, so unlockAudio() runs on the first touch.
 let ctx: AudioContext | null = null;
+let speechUnlocked = false;
 const MUTE_KEY = "alias_muted";
 
 export function isMuted(): boolean {
@@ -11,6 +12,15 @@ export function setMuted(m: boolean) {
 }
 
 export function unlockAudio() {
+  try {
+    // iOS only allows speech after a touch: say nothing, once, to unlock it
+    if (typeof window !== "undefined" && "speechSynthesis" in window && !speechUnlocked) {
+      speechUnlocked = true;
+      const u = new SpeechSynthesisUtterance("");
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+    }
+  } catch {}
   try {
     const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AC) return;
@@ -61,4 +71,20 @@ export function playTimeUp() {
   tone(c, 196, t, 1.1, "square", 0.25, 112);
   tone(c, 1500, t, 0.18, "square", 0.2);
   try { navigator.vibrate?.([300, 100, 300]); } catch {}
+}
+
+// Says a sentence out loud in Hebrew (the phone's own text-to-speech; silent if it has none or sound is muted)
+export function speak(text: string) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window) || isMuted()) return;
+  try {
+    const synth = window.speechSynthesis;
+    synth.cancel(); // never queue up announcements
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "he-IL";
+    const hebrew = synth.getVoices().find((v) => /^(he|iw)([-_]|$)/i.test(v.lang));
+    if (hebrew) u.voice = hebrew;
+    u.rate = 0.95;
+    u.volume = 1;
+    synth.speak(u);
+  } catch {}
 }

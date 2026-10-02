@@ -5,7 +5,7 @@ import type { AliasView, TeamId } from "@/types/alias";
 import Splash, { Hourglass } from "./Splash";
 import AliasLogo, { AliasBadge } from "./AliasLogo";
 import { specialSteps } from "@/lib/alias/track";
-import { isMuted, playTick, playTimeUp, setMuted, unlockAudio } from "./sound";
+import { isMuted, playTick, playTimeUp, setMuted, speak, unlockAudio } from "./sound";
 import AdSlot from "./AdSlot";
 
 const TEAM_STYLE = [
@@ -316,6 +316,17 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
       playTimeUp();
     }
   }, [view.phase, view.code, view.turn, view.endsAt, secondsLeft]);
+
+  // Announce out loud whose turn it is, once per turn, on every phone
+  const announced = useRef("");
+  useEffect(() => {
+    if (view.phase !== "ready") return;
+    const key = `${view.code}:${view.turn}`;
+    if (announced.current === key) return;
+    announced.current = key;
+    const name = view.teamNames[view.activeTeam];
+    speak(view.specialTurn != null ? `סיבוב מיוחד של ${name}` : `התור של ${name}`);
+  }, [view.phase, view.code, view.turn, view.activeTeam, view.teamNames, view.specialTurn]);
 
   return (
     <div className="space-y-4 pb-8">
