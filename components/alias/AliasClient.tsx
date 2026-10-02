@@ -334,24 +334,56 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
         {view.phase === "ready" && (
           <Centered>
             <TeamBadge view={view} team={view.activeTeam} />
+            {view.useDice && view.roll !== null && (
+              <div className="flex items-center gap-3 mt-3 mb-1">
+                <Dice value={view.roll} rollKey={rollKey} onSettled={setSettled} size={84} />
+                {revealed ? (
+                  <span className="text-sm text-gray-600">יצא <b className="text-3xl text-gray-900">{view.roll}</b></span>
+                ) : (
+                  <span className="w-16" />
+                )}
+              </div>
+            )}
             {isExplainer ? (
               <>
                 <h2 className="text-2xl font-bold">התור שלך להסביר!</h2>
-                <p className="text-gray-500 text-sm">
-                  {view.useDice
-                    ? "לכל מילה תוטל קובייה, והמספר שיצא קובע איזו מילה מהקלף להסביר. "
-                    : `לפי המקום של הקבוצה על המסלול, מסבירים את המילה מספר ${view.slot} בכל קלף. `}
-                  בלי להגיד את המילה עצמה. יש לכם {view.roundSeconds} שניות.
-                </p>
-                <BigButton onClick={() => act("begin")} disabled={busy} color="bg-green-600">התחל סיבוב</BigButton>
+                {view.useDice ? (
+                  view.roll === null ? (
+                    <>
+                      <p className="text-gray-500 text-sm">
+                        מטילים קובייה. המספר שיצא קובע איזו מילה מסבירים בכל קלף, במשך כל התור. אפשר להטיל פעם אחת בלבד.
+                      </p>
+                      <BigButton onClick={() => act("roll")} disabled={busy} color="bg-red-600">🎲 הטל קובייה</BigButton>
+                    </>
+                  ) : revealed ? (
+                    <>
+                      <p className="text-gray-500 text-sm">
+                        יצא <b>{view.roll}</b>! מסבירים את המילה מספר {view.roll} בכל קלף. בלי להגיד את המילה עצמה. יש לכם {view.roundSeconds} שניות.
+                      </p>
+                      <BigButton onClick={() => act("begin")} disabled={busy} color="bg-green-600">התחל סיבוב</BigButton>
+                    </>
+                  ) : (
+                    <p className="text-lg font-bold py-2">🎲 מטילים קובייה...</p>
+                  )
+                ) : (
+                  <>
+                    <p className="text-gray-500 text-sm">
+                      {`לפי המקום של הקבוצה על המסלול, מסבירים את המילה מספר ${view.slot} בכל קלף. `}
+                      בלי להגיד את המילה עצמה. יש לכם {view.roundSeconds} שניות.
+                    </p>
+                    <BigButton onClick={() => act("begin")} disabled={busy} color="bg-green-600">התחל סיבוב</BigButton>
+                  </>
+                )}
               </>
             ) : (
               <>
                 <h2 className="text-2xl font-bold">{explainer?.name ?? "..."} מסביר/ה</h2>
                 <p className="text-gray-500 text-sm">
-                  {view.me?.team === view.activeTeam
-                    ? "אתם הקבוצה המנחשת — היו מוכנים!"
-                    : "הקבוצה שלכם צופה. אפשר לוודא שלא מרמים 😉"}
+                  {view.useDice && view.roll === null
+                    ? `ממתינים ש${explainer?.name ?? "המסביר"} יטיל קובייה 🎲`
+                    : view.me?.team === view.activeTeam
+                      ? "אתם הקבוצה המנחשת — היו מוכנים!"
+                      : "הקבוצה שלכם צופה. אפשר לוודא שלא מרמים 😉"}
                 </p>
                 <button onClick={() => act("skipExplainer")} disabled={busy} className="text-xs text-gray-400 underline">
                   המסביר לא מגיב? החליפו תור
@@ -540,7 +572,7 @@ function Lobby({ view, isHost, act, busy }: { view: AliasView; isHost: boolean; 
             <Stepper value={view.roundSeconds} step={10} min={20} max={180} onChange={(v) => act("settings", { roundSeconds: v })} />
           </label>
           <label className="flex items-center justify-between text-sm">
-            🎲 מצב קובייה (הטלה לכל מילה)
+            🎲 קובייה (הטלה אחת בכל תור קובעת את מספר המילה)
             <input
               type="checkbox"
               checked={view.useDice}
