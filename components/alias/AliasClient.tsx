@@ -5,7 +5,8 @@ import type { AliasView, TeamId } from "@/types/alias";
 import Splash from "./Splash";
 import ClockTimer from "./ClockTimer";
 import YuvalLogo, { YuvalBadge } from "./YuvalLogo";
-import { specialSteps } from "@/lib/alias/track";
+import { SPECIAL_WORDS, categoryAt, specialSteps } from "@/lib/alias/track";
+import { CATEGORY_META } from "@/lib/alias/categories";
 import { isMuted, playTick, playTimeUp, setMuted, speak, unlockAudio } from "./sound";
 import AdSlot from "./AdSlot";
 
@@ -318,15 +319,15 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
 
 function RulesModal({ onClose }: { onClose: () => void }) {
   const items: [string, string][] = [
-    ["🎯 מטרת המשחק", "להיות הקבוצה הראשונה שמגיעה לדגל 🏁 במרכז הלוח."],
+    ["🎯 מטרת המשחק", "להיות הקבוצה הראשונה שמגיעה לגביע 🏆 בסוף הנהר."],
     ["👥 קבוצות", "משחקים 2 עד 4 קבוצות, לפחות שחקן אחד בכל קבוצה. יוצרים חדר, שולחים את הקוד (או קישור וואטסאפ) לחברים, וכולם מצטרפים מהטלפון."],
-    ["🫧 הלוח", "הלוח הוא ספירלה של בועות ממוספרות 1 עד 8. כולם מתחילים בבועה 1, והמספר על הבועה שהקבוצה עומדת עליה קובע איזו מילה מסבירים מתוך הקלף."],
-    ["🗣️ התור", "בכל תור מסביר אחד מהקבוצה מסביר את המילה, בלי להגיד אותה, בלי מילים מאותו שורש ובלי תרגום. חברי הקבוצה מנחשים בקול, והזמן מוגבל בשעון."],
-    ["✅ ניקוד", "מילה שנוחשה = לוחצים \"נחשו\" והקבוצה מתקדמת בועה קדימה. דילוג מחזיר בועה אחורה (אפשר לכבות בהגדרות)."],
+    ["🪨 הלוח", "כולם מתחילים באבן הראשונה. כל אבן שייכת לקטגוריה לפי הצבע והאייקון שלה, והמילה שמסבירים נלקחת מהקטגוריה של האבן שבה הקבוצה עומדת."],
+    ["🗣️ התור", "בכל תור מסביר אחד מהקבוצה מסביר מילה אחת בכל פעם, בלי להגיד אותה, בלי מילים מאותו שורש ובלי תרגום. חברי הקבוצה מנחשים בקול, והזמן מוגבל בשעון."],
+    ["✅ ניקוד", "מילה שנוחשה = לוחצים \"נחשו\" והקבוצה מתקדמת אבן קדימה. דילוג מחזיר אבן אחורה (אפשר לכבות בהגדרות)."],
     ["🔔 סוף הזמן", "ב-5 השניות האחרונות נשמעים צלצולים, ובסוף הסיבוב המסביר יכול לתקן מילים שסומנו בטעות."],
-    ["⭐ בועות מיוחדות", "בועה עם מסגרת בלבד היא סיבוב מיוחד. קבוצה שנוחתת עליה מקבלת אותו בתור הבא שלה: בלי טיימר, המסביר מסביר 5 מילים לפי המספר שעל הבועה, כל הקבוצות מנחשות, והקבוצה שניחשה ראשונה מתקדמת."],
+    ["⭐ אבני כוכב", "קבוצה שנוחתת על אבן כוכב מקבלת סיבוב פנטומימה בתור הבא שלה: בלי מילים ובלי טיימר, המסביר מראה בתנועות 4 מילים, כל הקבוצות מנחשות, והקבוצה שניחשה ראשונה מתקדמת."],
     ["🔁 מי מסביר", "אי אפשר לדלג על תור של קבוצה. אפשר רק להחליף את המסביר בתוך אותה קבוצה."],
-    ["🏆 ניצחון", "הראשונה שמגיעה לדגל מנצחת. אפשר להתחיל משחק חוזר באותו חדר."],
+    ["🏆 ניצחון", "הראשונה שמגיעה לאבן האחרונה מנצחת. אפשר להתחיל משחק חוזר באותו חדר."],
   ];
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-3" onClick={onClose} role="dialog" aria-modal="true" aria-label="חוקי המשחק">
@@ -381,7 +382,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
     if (announced.current === key) return;
     announced.current = key;
     const name = view.teamNames[view.activeTeam];
-    speak(view.specialTurn != null ? `סיבוב מיוחד של ${name}` : `התור של ${name}`);
+    speak(view.specialTurn != null ? `סיבוב פנטומימה של ${name}` : `התור של ${name}`);
   }, [view.phase, view.code, view.turn, view.activeTeam, view.teamNames, view.specialTurn]);
 
   return (
@@ -416,46 +417,44 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
           <Centered>
             <TeamBadge view={view} team={view.activeTeam} />
             {view.specialTurn != null ? (
-              // this turn is the team's special round (they landed on an outlined bubble last turn)
+              // this turn is the team's mime round (they landed on a star stone last turn)
               isExplainer ? (
                 <>
-                  <span className="inline-block bg-amber-400 text-amber-950 text-xs font-extrabold px-3 py-1 rounded-full">⭐ סיבוב מיוחד</span>
-                  <h2 className="text-2xl font-bold">התור שלך להסביר!</h2>
+                  <span className="inline-block bg-amber-400 text-amber-950 text-xs font-extrabold px-3 py-1 rounded-full">⭐ סיבוב פנטומימה</span>
+                  <h2 className="text-2xl font-bold">התור שלך להציג!</h2>
+                  <CategoryChip id={view.specialTurn} />
                   <p className="text-gray-500 text-sm">
-                    הקבוצה נחתה בתור הקודם על בועה עם מסגרת (בועה {view.specialTurn}), ולכן התור הזה הוא סיבוב מיוחד במקום סיבוב רגיל:
-                    בלי טיימר, מסבירים 5 מילים (המילה מספר {view.specialTurn} בכל קלף), וכל הקבוצות מנחשות.
+                    הקבוצה נחתה בתור הקודם על אבן עם כוכב, ולכן התור הזה הוא סיבוב פנטומימה במקום סיבוב רגיל: בלי טיימר ו<b>בלי לדבר</b>!
+                    מציגים {SPECIAL_WORDS} מילים בתנועות בלבד, וכל הקבוצות מנחשות.
                   </p>
-                  <BigButton onClick={() => act("begin")} disabled={busy} color="bg-amber-500">התחל סיבוב מיוחד</BigButton>
+                  <BigButton onClick={() => act("begin")} disabled={busy} color="bg-amber-500">התחל סיבוב פנטומימה</BigButton>
                 </>
               ) : (
                 <>
-                  <span className="inline-block bg-amber-400 text-amber-950 text-xs font-extrabold px-3 py-1 rounded-full">⭐ סיבוב מיוחד</span>
-                  <h2 className="text-2xl font-bold">{explainer?.name ?? "..."} מסביר/ה</h2>
+                  <span className="inline-block bg-amber-400 text-amber-950 text-xs font-extrabold px-3 py-1 rounded-full">⭐ סיבוב פנטומימה</span>
+                  <h2 className="text-2xl font-bold">{explainer?.name ?? "..."} מציג/ה</h2>
+                  <CategoryChip id={view.specialTurn} />
                   <p className="text-gray-500 text-sm">
-                    {view.teamNames[view.activeTeam]} נחתו על בועה עם מסגרת, והתור שלהם הוא סיבוב מיוחד: כל הקבוצות מנחשות 5 מילים! היו מוכנים.
+                    {view.teamNames[view.activeTeam]} נחתו על אבן עם כוכב: סיבוב פנטומימה! בלי מילים, וכל הקבוצות מנחשות {SPECIAL_WORDS} מילים. היו מוכנים.
                   </p>
                 </>
               )
             ) : isExplainer ? (
               <>
                 <h2 className="text-2xl font-bold">התור שלך להסביר!</h2>
-                <div className="flex items-center gap-3 bg-brand-50 border-2 border-brand-200 rounded-2xl px-5 py-3">
-                  <span className="text-sm text-gray-600">הקבוצה עומדת על בועה</span>
-                  <span className="w-12 h-12 rounded-full bg-white border-2 border-brand-300 text-brand-600 text-2xl font-black flex items-center justify-center shadow">
-                    {view.slot}
-                  </span>
-                </div>
+                <CategoryChip id={view.category} big />
                 <p className="text-gray-500 text-sm">
-                  מסבירים את המילה מספר {view.slot} בכל קלף. בלי להגיד את המילה עצמה. יש לכם {view.roundSeconds} שניות.
+                  הקבוצה עומדת על אבן מהקטגוריה הזו, ולכן המילים יהיו משם. בלי להגיד את המילה עצמה. יש לכם {view.roundSeconds} שניות.
                 </p>
                 <BigButton onClick={() => act("begin")} disabled={busy} color="bg-green-600">התחל סיבוב</BigButton>
               </>
             ) : (
               <>
                 <h2 className="text-2xl font-bold">{explainer?.name ?? "..."} מסביר/ה</h2>
+                <CategoryChip id={view.category} />
                 <p className="text-gray-500 text-sm">
                   {view.me?.team === view.activeTeam
-                    ? `אתם הקבוצה המנחשת (בועה ${view.slot}), היו מוכנים!`
+                    ? "אתם הקבוצה המנחשת, היו מוכנים!"
                     : "הקבוצה שלכם צופה. אפשר לוודא שלא מרמים 😉"}
                 </p>
               </>
@@ -474,9 +473,9 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
                 {secondsLeft}
               </div>
             </div>
-            {isExplainer && view.card && view.word ? (
+            {isExplainer && view.word ? (
               <>
-                <AliasCard card={view.card} slot={view.slot} />
+                <WordCard word={view.word} category={view.category} />
                 <div className="grid grid-cols-2 gap-3 w-full">
                   <button
                     onClick={() => act("skip")}
@@ -503,12 +502,12 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
                 <p className="text-gray-500 text-sm">
                   {view.me?.team === view.activeTeam ? "נחשו בקול! 🎯" : "הקבוצה השנייה מנחשת. אתם השופטים 👀"}
                 </p>
-                {view.isReferee && view.card && view.word && (
+                {view.isReferee && view.word && (
                   <div className="w-full space-y-2">
                     <p className="text-xs font-bold text-orange-600">
                       מצב שופט: רק אתם רואים את המילה. ודאו שהמסביר לא מרמה ושהחבר שלו ענה נכון!
                     </p>
-                    <AliasCard card={view.card} slot={view.slot} />
+                    <WordCard word={view.word} category={view.category} />
                     <div className="flex flex-wrap gap-1 justify-center">
                       {view.results.map((r, i) => (
                         <span key={i} className={`text-xs px-2 py-1 rounded-full ${r.ok ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500 line-through"}`}>
@@ -563,11 +562,11 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
         {view.phase === "special" && view.special && (
           <div className="space-y-4">
             <div className="text-center space-y-1">
-              <span className="inline-block bg-amber-400 text-amber-950 text-xs font-extrabold px-3 py-1 rounded-full">⭐ סיבוב מיוחד</span>
-              <h2 className="text-xl font-bold">הסיבוב המיוחד של {view.teamNames[view.special.team]}</h2>
+              <span className="inline-block bg-amber-400 text-amber-950 text-xs font-extrabold px-3 py-1 rounded-full">⭐ סיבוב פנטומימה</span>
+              <h2 className="text-xl font-bold">סיבוב הפנטומימה של {view.teamNames[view.special.team]}</h2>
               <p className="text-sm text-gray-500">
-                בלי הגבלת זמן. {explainer?.name} מסביר/ה {view.special.total} מילים (המילה מספר {view.special.slot} בכל קלף), וכל הקבוצות מנחשות.
-                הקבוצה שמנחשת ראשונה מקבלת צעד קדימה.
+                בלי הגבלת זמן, ו<b>בלי לדבר</b>: {explainer?.name} מציג/ה {view.special.total} מילים בתנועות בלבד, וכל הקבוצות מנחשות.
+                הקבוצה שמנחשת ראשונה מקבלת אבן קדימה.
               </p>
             </div>
 
@@ -595,9 +594,9 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
             </div>
             <p className="text-center text-sm font-bold">מילה {view.special.index + 1} מתוך {view.special.total}</p>
 
-            {isExplainer && view.card && view.word ? (
+            {isExplainer && view.word ? (
               <>
-                <AliasCard card={view.card} slot={view.slot} />
+                <WordCard word={view.word} category={view.special.category} mime />
                 <p className="text-center text-sm text-gray-600">איזו קבוצה ניחשה ראשונה?</p>
                 <div className="grid grid-cols-2 gap-2">
                   {teamsOf(view).map((t) => (
@@ -620,7 +619,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
                 </button>
               </>
             ) : (
-              <p className="text-center text-gray-500 text-sm">{explainer?.name} מסביר/ה... כולם מנחשים בקול! 🎯</p>
+              <div className="flex flex-col items-center gap-2"><CategoryChip id={view.special.category} /><p className="text-center text-gray-500 text-sm">{explainer?.name} מציג/ה בלי מילים... כולם מנחשים בקול! 🎯</p></div>
             )}
           </div>
         )}
@@ -802,87 +801,63 @@ function Scoreboard({ view }: { view: AliasView }) {
           <div className="text-xs truncate">{view.teamNames[t]}</div>
           <div className="text-3xl font-extrabold">{view.scores[t]}</div>
           <div className="text-[10px] opacity-80">מתוך {view.targetScore}</div>
-          {view.specialPending?.[t] != null && <div className="text-[10px] font-bold text-yellow-200">⭐ סיבוב מיוחד בתור הבא</div>}
+          {view.specialPending?.[t] != null && <div className="text-[10px] font-bold text-yellow-200">⭐ פנטומימה בתור הבא</div>}
         </div>
       ))}
     </div>
   );
 }
 
-// One Alias card: 8 words, the number on the team's square picks the one to explain.
-function AliasCard({ card, slot }: { card: string[]; slot: number }) {
+// The category of a stone: its icon and name on the category's colour
+function CategoryChip({ id, big }: { id: number; big?: boolean }) {
+  const c = CATEGORY_META[id];
   return (
-    <div className="w-full rounded-2xl border-2 border-brand-200 bg-brand-50 overflow-hidden">
-      <ul className="divide-y divide-brand-100">
-        {card.map((w, i) => {
-          const active = i + 1 === slot;
-          return (
-            <li
-              key={i}
-              className={`flex items-center gap-3 px-3 ${
-                active ? "bg-yellow-200 py-3 text-2xl font-extrabold text-brand-900" : "py-1 text-sm text-gray-400"
-              }`}
-            >
-              <span className={`w-6 shrink-0 text-center ${active ? "text-brand-700" : "text-brand-300"}`}>{i + 1}</span>
-              <span className="flex-1 text-center break-words">{w}</span>
-              <span className="w-6 shrink-0" />
-            </li>
-          );
-        })}
-      </ul>
+    <span
+      className={`inline-flex items-center gap-2 font-bold text-white rounded-full shadow ${big ? "px-6 py-3 text-xl" : "px-3 py-1 text-xs"}`}
+      style={{ backgroundColor: c.color }}
+    >
+      <span className={big ? "text-3xl" : ""}>{c.icon}</span>
+      {c.name}
+    </span>
+  );
+}
+
+// The word to explain, on a card in the category's colour
+function WordCard({ word, category, mime }: { word: string; category: number; mime?: boolean }) {
+  const c = CATEGORY_META[category];
+  return (
+    <div className="w-full rounded-3xl overflow-hidden border-4 shadow-md" style={{ borderColor: c.color }}>
+      <div className="px-4 py-2 text-white text-sm font-bold text-center" style={{ backgroundColor: c.color }}>
+        {c.icon} {c.name}
+        {mime ? " · פנטומימה, בלי לדבר!" : ""}
+      </div>
+      <div className="bg-white py-9 px-3 text-center">
+        <span className="text-4xl font-extrabold text-gray-900 break-words">{word}</span>
+      </div>
     </div>
   );
 }
 
-// ── The board, like the real one: a red spiral of speech bubbles numbered 1-8 (repeating) ──
-// Everybody starts on the big first bubble; the finish flag is at the centre of the spiral.
+// ── The board: a winding river of stepping stones, each stone coloured by the category of its word ──
+// Everybody starts on the first stone; the trophy is on the last one. Star stones = silent mime rounds.
 const BOARD_W = 360;
-const BOARD_PAD = 30;
-const BUBBLE_R = 14;
-const MIN_STEP = 36; // distance between neighbouring bubbles along the track
-const RING_GAP = 72; // two bubble-steps between one lap and the next, as on the real board
+const BOARD_PAD = 14;
+const COLS = 7;
+const CELL = (BOARD_W - 2 * BOARD_PAD) / COLS;
+const TILE = CELL - 8;
 
 type Pt = { x: number; y: number };
 
-// Rectangular spiral polyline: down, left, up, right (stopping a gap early), then one lap further in.
-function spiralPolyline(W: number, H: number): Pt[] {
-  let x0 = 0, x1 = W, y0 = 0, y1 = H;
-  const pts: Pt[] = [{ x: x1, y: y0 }];
-  while (x1 - x0 > RING_GAP && y1 - y0 > RING_GAP) {
-    pts.push({ x: x1, y: y1 }, { x: x0, y: y1 }, { x: x0, y: y0 });
-    if (x1 - RING_GAP > x0) pts.push({ x: x1 - RING_GAP, y: y0 });
-    x1 -= RING_GAP; y1 -= RING_GAP; x0 += RING_GAP; y0 += RING_GAP;
-  }
-  return pts;
-}
-
-const pathLength = (pts: Pt[]) => pts.slice(1).reduce((n, p, i) => n + Math.hypot(p.x - pts[i].x, p.y - pts[i].y), 0);
-
-// `count` bubbles spread evenly along the spiral, the last one exactly at its centre end
+// stone i (0 = start, count = trophy), snaking left→right then right→left row by row
 function trackPoints(count: number): { pts: Pt[]; height: number } {
-  const W = BOARD_W - 2 * BOARD_PAD;
-  let poly = spiralPolyline(W, 120);
-  for (let H = 120; H < 4000; H += 10) {
-    poly = spiralPolyline(W, H);
-    if (pathLength(poly) >= count * MIN_STEP) break;
-  }
-  const step = pathLength(poly) / count;
+  const rows = Math.ceil((count + 1) / COLS);
   const pts: Pt[] = [];
-  let seg = 0;
-  let segStart = 0;
   for (let i = 0; i <= count; i++) {
-    const d = i * step;
-    while (seg < poly.length - 2 && d > segStart + Math.hypot(poly[seg + 1].x - poly[seg].x, poly[seg + 1].y - poly[seg].y) + 1e-6) {
-      segStart += Math.hypot(poly[seg + 1].x - poly[seg].x, poly[seg + 1].y - poly[seg].y);
-      seg++;
-    }
-    const a = poly[seg], b = poly[seg + 1];
-    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-    const t = Math.min(1, Math.max(0, (d - segStart) / len));
-    pts.push({ x: BOARD_PAD + a.x + (b.x - a.x) * t, y: 58 + a.y + (b.y - a.y) * t });
+    const r = Math.floor(i / COLS);
+    const c = r % 2 === 0 ? i % COLS : COLS - 1 - (i % COLS);
+    pts.push({ x: BOARD_PAD + CELL * (c + 0.5), y: BOARD_PAD + CELL * (r + 0.5) });
   }
-  const bottom = Math.max(...poly.map((p) => p.y));
-  return { pts, height: 58 + bottom + BOARD_PAD };
+  return { pts, height: 2 * BOARD_PAD + rows * CELL };
 }
 
 const TEAM_PAWN = ["#be123c", "#2563eb", "#16a34a", "#f59e0b"];
@@ -893,83 +868,72 @@ function Board({ view }: { view: AliasView }) {
   const { pts, height } = useMemo(() => trackPoints(total), [total]);
   const teams = teamsOf(view);
   const specials = useMemo(() => new Set(specialSteps(total)), [total]);
-  const start = pts[0];
-  const finish = pts[total];
 
   return (
     <div className="bg-white/10 rounded-2xl p-2 shadow-lg">
       <svg viewBox={`0 0 ${BOARD_W} ${height}`} className="w-full h-auto" role="img" aria-label="לוח המשחק">
         <defs>
-          <radialGradient id="boardGlow" cx="50%" cy="45%" r="75%">
-            <stop offset="0" stopColor="#7c3aed" />
+          <linearGradient id="boardGlow" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#312e81" />
             <stop offset="1" stopColor="#4c1d95" />
-          </radialGradient>
+          </linearGradient>
         </defs>
         <rect x="0" y="0" width={BOARD_W} height={height} rx="16" fill="url(#boardGlow)" stroke="#ddd6fe" strokeOpacity="0.5" strokeWidth="2" />
 
-        {/* a faint line joining the bubbles shows the way */}
-        <polyline points={pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")} fill="none" stroke="#fff" strokeOpacity="0.18" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+        {/* the river the stones sit in */}
+        <polyline points={pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")} fill="none" stroke="#38bdf8" strokeOpacity="0.35" strokeWidth={TILE * 0.8} strokeLinecap="round" strokeLinejoin="round" />
 
-        {/* the bubbles: number 1-8 repeating, a little speech-bubble tail at the bottom left */}
         {pts.map((p, i) => {
-          if (i === 0 || i === total) return null;
-          // an outlined bubble (not filled) = special round, like on the real board
-          if (specials.has(i)) {
+          const x = p.x - TILE / 2;
+          const y = p.y - TILE / 2;
+          if (i === total) {
             return (
-              <g key={i} transform={`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`}>
-                <circle r={BUBBLE_R + 3} fill="#fde047" opacity="0.22" />
-                <path d="M-9 8 L-17 18 L-3 13" fill="none" stroke="#fff7ed" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-                <circle r={BUBBLE_R} fill="#4c1d95" stroke="#fff7ed" strokeWidth="2.8" />
-                <text y="5.2" textAnchor="middle" fontSize="15" fontWeight="800" fill="#fff7ed">{(i % 8) + 1}</text>
+              <g key={i}>
+                <rect x={x} y={y} width={TILE} height={TILE} rx="12" fill="#fde047" stroke="#fff" strokeWidth="3" />
+                <text x={p.x} y={p.y + 8} textAnchor="middle" fontSize="24">🏆</text>
               </g>
             );
           }
+          if (i === 0) {
+            return (
+              <g key={i}>
+                <rect x={x} y={y} width={TILE} height={TILE} rx="12" fill="#16a34a" stroke="#fff" strokeWidth="3" />
+                <text x={p.x} y={p.y + 15} textAnchor="middle" fontSize="9" fontWeight="800" fill="#fff">התחלה</text>
+              </g>
+            );
+          }
+          const c = CATEGORY_META[categoryAt(i)];
+          const star = specials.has(i);
           return (
-            <g key={i} transform={`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`}>
-              <path d="M-9 8 L-17 18 L-3 13 Z" fill="#fff7ed" />
-              <circle r={BUBBLE_R} fill="#fff7ed" />
-              <text y="5.2" textAnchor="middle" fontSize="15" fontWeight="800" fill="#6d28d9">{(i % 8) + 1}</text>
+            <g key={i}>
+              <rect x={x} y={y} width={TILE} height={TILE} rx="10" fill={c.color} stroke={star ? "#fde047" : "#fff"} strokeOpacity={star ? 1 : 0.55} strokeWidth={star ? 3.5 : 1.5} />
+              <text x={p.x} y={p.y + 6} textAnchor="middle" fontSize="18">{c.icon}</text>
+              {star && <text x={p.x + TILE / 2 - 4} y={p.y - TILE / 2 + 9} textAnchor="middle" fontSize="13">⭐</text>}
             </g>
           );
         })}
 
-        {/* start: the big first bubble */}
-        <g transform={`translate(${start.x.toFixed(1)} ${start.y.toFixed(1)})`}>
-          <circle r="27" fill="#fff" opacity="0.28" />
-          <path d="M-12 11 L-23 25 L-4 18 Z" fill="#fff" />
-          <circle r="20" fill="#fff" />
-          <text y="7" textAnchor="middle" fontSize="21" fontWeight="900" fill="#6d28d9">1</text>
-        </g>
-        <g transform={`translate(${(start.x - 14).toFixed(1)} ${(start.y - 40).toFixed(1)})`}>
-          <rect x="-30" y="-12" width="60" height="24" rx="12" fill="#16a34a" stroke="#fff" strokeWidth="2" />
-          <text y="5" textAnchor="middle" fontSize="13" fontWeight="800" fill="#fff">התחלה</text>
-        </g>
-
-        {/* finish: the flag in the middle of the spiral */}
-        <g transform={`translate(${finish.x.toFixed(1)} ${finish.y.toFixed(1)})`}>
-          <circle r="25" fill="#fde047" opacity="0.35" />
-          <circle r="19" fill="#fde047" stroke="#fff" strokeWidth="3" />
-          <text y="7" textAnchor="middle" fontSize="21">🏁</text>
-        </g>
-
-        {/* the teams' pawns sit in the corners of their bubble, so the number stays readable */}
+        {/* the teams' pawns sit in the corners of their stone */}
         {teams.map((t) => {
           const p = pts[Math.min(view.scores[t], total)];
           const [dx, dy] = PAWN_CORNER[t];
           return (
             <g key={t} style={{ transform: `translate(${p.x + dx}px, ${p.y + dy}px)`, transition: "transform 0.9s ease-in-out" }}>
-              <circle r="8" fill={TEAM_PAWN[t]} stroke="#fff" strokeWidth="2.5" />
+              <circle r="7" fill={TEAM_PAWN[t]} stroke="#fff" strokeWidth="2.5" />
               {view.activeTeam === t && view.phase !== "finished" && (
-                <circle r="12.5" fill="none" stroke="#fff" strokeWidth="2" strokeDasharray="3 3" />
+                <circle r="11" fill="none" stroke="#fff" strokeWidth="2" strokeDasharray="3 3" />
               )}
             </g>
           );
         })}
       </svg>
+      <div className="flex flex-wrap justify-center gap-1 mt-2">
+        {CATEGORY_META.map((c) => <CategoryChip key={c.id} id={c.id} />)}
+      </div>
       <p className="text-[11px] text-white/90 mt-2 text-center px-2">
-        כולם מתחילים בבועה 1. כל מילה שנוחשה מקדמת צעד{view.skipPenalty ? ", וכל דילוג מחזיר צעד אחורה" : ""}.
-        המספר על הבועה קובע איזו מילה מסבירים בכל קלף. בועה עם מסגרת בלבד = סיבוב מיוחד: בלי טיימר, וכל הקבוצות מנחשות.
-        הראשונה שמגיעה לדגל במרכז מנצחת.
+        כל אבן על הנהר היא קטגוריה — המילה לפי צבע האבן שבה עומדת הקבוצה. כל מילה שנוחשה מקדמת אבן{view.skipPenalty ? ", וכל דילוג מחזיר אבן אחורה" : ""}.
+        ⭐ אבן כוכב = סיבוב פנטומימה: בלי מילים ובלי טיימר, כל הקבוצות מנחשות.
+        הראשונה שמגיעה לגביע מנצחת.
       </p>
     </div>
   );
