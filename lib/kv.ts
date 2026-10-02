@@ -32,7 +32,7 @@ export function kvProvider(): KvProvider {
 
 // Names (never values) of storage-related environment variables, to diagnose a missing connection
 export const storageEnvNames = () =>
-  Object.keys(process.env).filter((k) => /TURSO|LIBSQL|UPSTASH|REDIS|KV_|STORAGE/i.test(k)).sort();
+  Object.keys(process.env).filter((k) => /TURSO|LIBSQL|UPSTASH|REDIS|KV_|STORAGE|RESEND|MAIL|ADMIN/i.test(k)).sort();
 
 // ── memory ──────────────────────────────────────────────────────────────────
 const mem = new Map<string, { v: unknown; exp: number | null }>();
