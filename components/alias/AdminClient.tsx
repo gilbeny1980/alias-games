@@ -39,49 +39,108 @@ async function shrinkImage(file: File): Promise<string> {
   }
 }
 
+type Methods = { email: boolean; key: boolean; to: string };
+
 export default function AdminClient() {
   const [key, setKey] = useState("");
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
-  const [off, setOff] = useState(false);
+  const [methods, setMethods] = useState<Methods | null>(null);
+  const [sentTo, setSentTo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(true);
 
-  const call = useCallback(async (k: string, body?: Record<string, unknown>) => {
-    setError("");
+  // Calls the admin API. Signed in by the e-mail session cookie, or by the key if one was typed.
+  const call = useCallback(async (k: string, body?: Record<string, unknown>, quiet = false) => {
+    if (!quiet) setError("");
     const res = await fetch("/api/alias/ads/admin", {
       method: body ? "POST" : "GET",
-      headers: { "x-admin-key": k, "Content-Type": "application/json" },
+      headers: { ...(k ? { "x-admin-key": k } : {}), "Content-Type": "application/json" },
       body: body ? JSON.stringify(body) : undefined,
       cache: "no-store",
     });
-    if (res.status === 404) { setOff(true); return null; }
-    const json = await res.json();
-    if (!res.ok) { setError(json.error || "שגיאה"); return null; }
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (!quiet && res.status !== 404) setError(json.error || (res.status === 401 ? "נדרשת כניסה" : "שגיאה"));
+      return null;
+    }
     setData(json);
     return json as Data;
   }, []);
 
   useEffect(() => {
-    try {
-      const k = sessionStorage.getItem(KEY);
-      if (k) { setKey(k); call(k).then((d) => !d && sessionStorage.removeItem(KEY)); }
-    } catch {}
+    (async () => {
+      // 1) arrived from the e-mail link: exchange the one-time token for a session
+      const token = new URLSearchParams(location.search).get("token");
+      if (token) {
+        history.replaceState(null, "", location.pathname); // keep the token out of the address bar
+        const r = await fetch("/api/alias/ads/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "verify", token }),
+        });
+        if (!r.ok) setError((await r.json().catch(() => ({}))).error || "הקישור לא תקין");
+      }
+      // 2) already signed in (cookie) or a key saved for this tab?
+      let saved = "";
+      try { saved = sessionStorage.getItem(KEY) ?? ""; } catch {}
+      if (saved) setKey(saved);
+      const d = await call(saved, undefined, true);
+      if (!d) {
+        if (saved) try { sessionStorage.removeItem(KEY); } catch {}
+        setMethods(await fetch("/api/alias/ads/admin/login", { cache: "no-store" }).then((r) => r.json()).catch(() => null));
+      }
+      setChecking(false);
+    })();
   }, [call]);
+
+  async function sendLink() {
+    setBusy(true);
+    setError("");
+    try {
+      const r = await fetch("/api/alias/ads/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "request" }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) setError(j.error || "שגיאה");
+      else setSentTo(j.to);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function login(e: React.FormEvent) {
     e.preventDefault();
     const d = await call(key);
     if (d) try { sessionStorage.setItem(KEY, key); } catch {}
   }
+
+  async function logout() {
+    try { sessionStorage.removeItem(KEY); } catch {}
+    await fetch("/api/alias/ads/admin/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "logout" }) });
+    setData(null);
+    setKey("");
+    setSentTo("");
+    setMethods(await fetch("/api/alias/ads/admin/login", { cache: "no-store" }).then((r) => r.json()).catch(() => null));
+  }
+
   const act = (body: Record<string, unknown>) => call(key, body);
 
   const shell = "min-h-[100dvh] bg-gradient-to-br from-red-500 via-red-600 to-red-700 p-4 flex justify-center";
 
-  if (off)
+  if (checking)
+    return <div className={shell}><p className="text-white mt-16">טוען...</p></div>;
+
+  if (!data && methods && !methods.email && !methods.key)
     return (
       <div className={shell}>
         <div className="w-full max-w-md bg-white rounded-3xl p-6 mt-10 h-fit text-center space-y-2">
           <h1 className="text-xl font-bold">ניהול הפרסומות כבוי</h1>
-          <p className="text-sm text-gray-600">כדי להפעיל אותו, הגדירו בשרת משתנה סביבה בשם <code dir="ltr">ADS_ADMIN_KEY</code> עם מפתח ארוך וסודי.</p>
+          <p className="text-sm text-gray-600">
+            כדי להפעיל אותו, הגדירו בשרת <code dir="ltr">RESEND_API_KEY</code> (כניסה במייל) או <code dir="ltr">ADS_ADMIN_KEY</code> (כניסה עם מפתח).
+          </p>
         </div>
       </div>
     );
@@ -89,20 +148,43 @@ export default function AdminClient() {
   if (!data)
     return (
       <div className={shell}>
-        <form onSubmit={login} className="w-full max-w-sm bg-white rounded-3xl p-6 mt-10 h-fit space-y-3">
+        <div className="w-full max-w-sm bg-white rounded-3xl p-6 mt-10 h-fit space-y-4">
           <h1 className="text-xl font-bold text-center">ניהול פרסומות</h1>
-          <input
-            type="password"
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            placeholder="מפתח ניהול"
-            autoComplete="current-password"
-            dir="ltr"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-400"
-          />
+
+          {methods?.email && (
+            sentTo ? (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center space-y-1">
+                <div className="text-3xl">📧</div>
+                <p className="font-bold text-green-800">שלחנו קישור כניסה</p>
+                <p className="text-sm text-green-700" dir="ltr">{sentTo}</p>
+                <p className="text-xs text-gray-500">פתחו את המייל ולחצו על הכפתור. הקישור בתוקף ל-15 דקות. אם לא הגיע, בדקו בספאם.</p>
+                <button onClick={sendLink} disabled={busy} className="text-xs text-gray-500 underline">שלחו שוב</button>
+              </div>
+            ) : (
+              <button onClick={sendLink} disabled={busy} className="w-full bg-red-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-lg">
+                📧 שלח לי קישור כניסה למייל
+                <span className="block text-xs font-normal opacity-90" dir="ltr">{methods.to}</span>
+              </button>
+            )
+          )}
+
+          {methods?.key && (
+            <form onSubmit={login} className="space-y-2">
+              {methods.email && <p className="text-center text-xs text-gray-400">או כניסה עם מפתח</p>}
+              <input
+                type="password"
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                placeholder="מפתח ניהול"
+                autoComplete="current-password"
+                dir="ltr"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-400"
+              />
+              <button className={`w-full font-bold py-3 rounded-xl ${methods.email ? "bg-gray-100 text-gray-700" : "bg-red-600 text-white"}`}>כניסה</button>
+            </form>
+          )}
           {error && <p className="text-red-600 text-sm text-center">{error}</p>}
-          <button className="w-full bg-red-600 text-white font-bold py-3 rounded-xl">כניסה</button>
-        </form>
+        </div>
       </div>
     );
 
@@ -116,7 +198,7 @@ export default function AdminClient() {
         <div className="bg-white rounded-3xl p-5 space-y-3">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-extrabold">ניהול פרסומות</h1>
-            <button onClick={() => { try { sessionStorage.removeItem(KEY); } catch {} setData(null); setKey(""); }} className="text-xs text-gray-500 underline">יציאה</button>
+            <button onClick={logout} className="text-xs text-gray-500 underline">יציאה</button>
           </div>
           <label className="flex items-center justify-between rounded-xl border p-3">
             <span>

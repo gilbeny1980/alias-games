@@ -2,6 +2,7 @@ import { randomBytes, timingSafeEqual } from "crypto";
 import type { NextRequest } from "next/server";
 import { kvGet, kvSet } from "@/lib/kv";
 import { withRoomLock } from "@/lib/alias/store";
+import { emailLoginConfigured, verifyAdminSession } from "@/lib/alias/adminAuth";
 import { PLACEMENTS, type Placement } from "@/lib/alias/ads";
 
 export type AdStatus = "pending" | "approved" | "paused" | "rejected";
@@ -133,14 +134,17 @@ export async function firstHit(key: string, seconds: number): Promise<boolean> {
   return true;
 }
 
-// Admin check: ADS_ADMIN_KEY must be set (otherwise the whole admin is off) and
-// a wrong key 5 times in a row locks guessing for a minute.
+// Admin check: a valid e-mail sign-in session, or the ADS_ADMIN_KEY header. If neither sign-in method
+// is configured the admin does not exist ("off"). Wrong keys 5 times in a row lock key guessing for a minute.
 export async function checkAdmin(req: NextRequest): Promise<"ok" | "off" | "denied" | "locked"> {
+  if (await verifyAdminSession(req)) return "ok";
   const admin = process.env.ADS_ADMIN_KEY;
-  if (!admin) return "off";
+  if (!admin) return emailLoginConfigured() ? "denied" : "off";
+  const given = req.headers.get("x-admin-key");
+  if (!given) return "denied"; // not a guess, just not signed in: don't count it
   const state = (await kvGet<{ n: number; until: number }>("alias:ads:adminfail")) ?? { n: 0, until: 0 };
   if (Date.now() < state.until) return "locked";
-  const a = Buffer.from(req.headers.get("x-admin-key") ?? "");
+  const a = Buffer.from(given);
   const b = Buffer.from(admin);
   if (a.length === b.length && timingSafeEqual(a, b)) {
     if (state.n) await kvSet("alias:ads:adminfail", { n: 0, until: 0 });
