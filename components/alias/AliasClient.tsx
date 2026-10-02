@@ -374,7 +374,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
             {view.useDice && view.roll !== null && (
               <div className="flex items-center gap-3">
                 <Dice value={view.roll} rollKey={rollKey} onSettled={setSettled} />
-                <span className="text-sm text-gray-600">יצא <b className="text-2xl text-gray-900">{view.roll}</b></span>
+                {revealed ? <span className="text-sm text-gray-600">יצא <b className="text-2xl text-gray-900">{view.roll}</b></span> : <span className="w-16" />}
               </div>
             )}
             {isExplainer && !revealed ? (
