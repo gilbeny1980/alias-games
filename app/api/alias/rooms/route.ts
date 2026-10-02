@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createRoom, GameError, newCode, viewFor } from "@/lib/alias/game";
 import { getRoom, saveRoom, STORAGE_ERROR, storageReady } from "@/lib/alias/store";
+import { recordRoomCreated } from "@/lib/alias/stats";
 
 export async function POST(req: NextRequest) {
   if (!storageReady()) return NextResponse.json({ error: STORAGE_ERROR }, { status: 503 });
@@ -10,6 +11,7 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < 20 && (await getRoom(code)); i++) code = newCode();
     const { room, player } = createRoom(code, name, password);
     await saveRoom(room);
+    await recordRoomCreated();
     return NextResponse.json({ code, playerId: player.id, view: viewFor(room, player.id) });
   } catch (e) {
     if (e instanceof GameError) return NextResponse.json({ error: e.message }, { status: 400 });

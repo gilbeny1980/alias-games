@@ -52,6 +52,20 @@ export default function AliasClient() {
     try {
       if (!sessionStorage.getItem("alias_splash")) setSplash(true);
     } catch {}
+    // count this visit for the owner's dashboard: an anonymous random device id, once per browser session
+    try {
+      if (!sessionStorage.getItem("alias_visit")) {
+        let id = localStorage.getItem("alias_vid");
+        if (!id) { id = crypto.randomUUID(); localStorage.setItem("alias_vid", id); }
+        sessionStorage.setItem("alias_visit", "1");
+        fetch("/api/alias/stats/visit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+          keepalive: true,
+        }).catch(() => {});
+      }
+    } catch {}
     setReady(true);
   }, []);
 

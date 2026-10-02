@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { PLACEMENTS, PLACEMENT_LABELS, type Placement } from "@/lib/alias/ads";
 import type { Ad, AdStatus, AdsConfig } from "@/lib/alias/adsStore";
+import type { StatsSummary } from "@/lib/alias/stats";
 
 const KEY = "alias_admin_key";
 const STATUS_LABEL: Record<AdStatus, string> = { pending: "ממתינה לאישור", approved: "מאושרת", paused: "מושהית", rejected: "נדחתה" };
@@ -49,6 +50,7 @@ export default function AdminClient() {
   const [sentTo, setSentTo] = useState("");
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [stats, setStats] = useState<StatsSummary | null>(null);
 
   // Calls the admin API. Signed in by the e-mail session cookie, or by the key if one was typed.
   const call = useCallback(async (k: string, body?: Record<string, unknown>, quiet = false) => {
@@ -128,6 +130,16 @@ export default function AdminClient() {
 
   const act = (body: Record<string, unknown>) => call(key, body);
 
+  // usage numbers, loaded once signed in
+  const signedIn = !!data;
+  useEffect(() => {
+    if (!signedIn) return;
+    fetch("/api/alias/ads/admin/stats", { headers: key ? { "x-admin-key": key } : {}, cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setStats)
+      .catch(() => {});
+  }, [signedIn, key]);
+
   const shell = "min-h-[100dvh] bg-gradient-to-br from-red-500 via-red-600 to-red-700 p-4 flex justify-center";
 
   if (checking)
@@ -195,6 +207,8 @@ export default function AdminClient() {
   return (
     <div className={shell}>
       <div className="w-full max-w-2xl space-y-4 py-4">
+        <StatsCard stats={stats} />
+
         <div className="bg-white rounded-3xl p-5 space-y-3">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-extrabold">ניהול פרסומות</h1>
@@ -384,5 +398,49 @@ function NewAd({ act }: { act: Act }) {
         <button type="button" onClick={() => setOpen(false)} className="px-4 rounded-lg bg-gray-100">ביטול</button>
       </div>
     </form>
+  );
+}
+
+function StatsCard({ stats }: { stats: StatsSummary | null }) {
+  if (!stats)
+    return <div className="bg-white rounded-3xl p-5 text-center text-sm text-gray-500">טוען סטטיסטיקה...</div>;
+  const tiles = [
+    { label: "סה״כ משתמשים", value: stats.total, hint: "מכשירים ייחודיים" },
+    { label: "חדשים היום", value: stats.today.new, hint: `אתמול ${stats.yesterday.new}` },
+    { label: "פעילים היום", value: stats.today.active, hint: `אתמול ${stats.yesterday.active}` },
+    { label: "פעילים ב-7 ימים", value: stats.unique7, hint: "מכשירים שונים" },
+    { label: "משחקים היום", value: stats.today.rooms, hint: `אתמול ${stats.yesterday.rooms}` },
+    { label: "סה״כ משחקים", value: stats.rooms, hint: "חדרים שנפתחו" },
+  ];
+  const max = Math.max(1, ...stats.days.map((d) => d.active));
+  return (
+    <div className="bg-white rounded-3xl p-5 space-y-4">
+      <h2 className="text-lg font-extrabold">📊 כמה משתמשים יש לי</h2>
+      <div className="grid grid-cols-3 gap-2">
+        {tiles.map((t) => (
+          <div key={t.label} className="bg-red-50 rounded-2xl p-3 text-center">
+            <div className="text-3xl font-extrabold text-red-700 tabular-nums">{t.value}</div>
+            <div className="text-xs font-bold text-gray-700 leading-tight">{t.label}</div>
+            <div className="text-[10px] text-gray-400">{t.hint}</div>
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <div className="text-sm font-bold mb-2">משתמשים פעילים ב-14 הימים האחרונים</div>
+        <div className="flex items-end gap-1 h-32 px-1" dir="ltr">
+          {stats.days.map((d) => (
+            <div key={d.day} className="flex-1 flex flex-col items-center justify-end h-full" title={`${d.day}: ${d.active} פעילים, ${d.new} חדשים, ${d.rooms} משחקים`}>
+              <span className="text-[10px] text-gray-500 tabular-nums">{d.active || ""}</span>
+              <div className="w-full rounded-t bg-red-500" style={{ height: `${Math.max(d.active ? 4 : 1, (d.active / max) * 100)}%`, opacity: d.active ? 1 : 0.25 }} />
+              <span className="text-[9px] text-gray-400 mt-1">{d.day.slice(8)}/{d.day.slice(5, 7)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="text-[11px] text-gray-400 leading-snug">
+        משתמש = מכשיר או דפדפן ייחודי (מזהה אקראי אנונימי, בלי שם או מייל). מי שמשתמש בכמה מכשירים או מנקה את הדפדפן נספר כמה פעמים. הספירה מתחילה מרגע שהתכונה עלתה, והימים לפי שעון ישראל.
+      </p>
+    </div>
   );
 }
