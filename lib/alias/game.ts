@@ -1,12 +1,11 @@
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "crypto";
-import { ALIAS_WORDS } from "./words";
-import { SPECIAL_WORDS, isSpecialStep } from "./track";
+import { CATEGORIES } from "./words";
+import { SPECIAL_WORDS, categoryAt, isSpecialStep } from "./track";
 import type { AliasPlayer, AliasRoom, AliasView, TeamId } from "@/types/alias";
 
 export class GameError extends Error {}
 
 export const MIN_PER_TEAM = 2;
-export const CARD_SIZE = 8;
 export const MAX_TEAMS = 4;
 export const MAX_PLAYERS = 20;
 export const DEFAULT_TEAM_NAMES = ["האדומים", "הכחולים", "הירוקים", "הצהובים"];
@@ -20,12 +19,17 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-// Alias cards: 8 words each. The square a team stands on picks the word.
-function buildDeck(): string[][] {
-  const words = shuffle(ALIAS_WORDS);
-  const cards: string[][] = [];
-  for (let i = 0; i + CARD_SIZE <= words.length; i += CARD_SIZE) cards.push(words.slice(i, i + CARD_SIZE));
-  return cards;
+// One shuffled deck of words per category
+function buildDecks(): string[][] {
+  return CATEGORIES.map((c) => shuffle(c.words));
+}
+
+// Next word of a category (the deck is reshuffled when it runs out)
+function nextWord(room: AliasRoom, category: number): string {
+  if (!room.decks[category] || room.decks[category].length === 0) {
+    room.decks[category] = shuffle(CATEGORIES[category].words);
+  }
+  return room.decks[category].pop()!;
 }
 
 export function newCode(): string {
@@ -61,7 +65,7 @@ export function createRoom(code: string, hostName: string, password?: unknown): 
     hostId: player.id,
     players: [player],
     phase: "lobby",
-    targetScore: 70, // the real board: 70 steps from the first bubble to the centre
+    targetScore: 60, // steps from the first stone to the finish
     roundSeconds: 60,
     skipPenalty: true,
     teamCount: 2,
@@ -72,10 +76,9 @@ export function createRoom(code: string, hostName: string, password?: unknown): 
     explainerId: null,
     endsAt: null,
     word: null,
-    card: null,
     special: null,
     specialPending: [null, null, null, null],
-    deck: buildDeck(),
+    decks: buildDecks(),
     results: [],
     winner: null,
     version: 0,
@@ -98,14 +101,11 @@ export function roundScore(room: AliasRoom): number {
   return room.results.reduce((sum, r) => sum + (r.ok ? 1 : room.skipPenalty ? -1 : 0), 0);
 }
 
-// Number (1-8) printed on the bubble a team stands on. Everybody starts on bubble 1,
-// and the numbers repeat 1-8 along the whole track, as on the real board.
-export const slotFor = (position: number) => (Math.max(0, position) % CARD_SIZE) + 1;
+// The category of the stone a team stands on: its words come from here
+export const categoryFor = (position: number) => categoryAt(position);
 
 function drawWord(room: AliasRoom): string {
-  if (room.deck.length === 0) room.deck = buildDeck();
-  room.card = room.deck.pop()!;
-  return room.card[slotFor(room.scores[teamOf(room)]) - 1];
+  return nextWord(room, categoryFor(room.scores[teamOf(room)]));
 }
 
 // Lazily ends a round whose time ran out. Safe to run on any copy.
@@ -113,7 +113,6 @@ export function tick(room: AliasRoom, now = Date.now()): boolean {
   if (room.phase === "playing" && room.endsAt !== null && now >= room.endsAt) {
     room.phase = "roundEnd";
     room.word = null;
-    room.card = null;
     return true;
   }
   return false;
@@ -132,23 +131,19 @@ function prepareTurn(room: AliasRoom) {
   room.phase = "ready";
   room.endsAt = null;
   room.word = null;
-  room.card = null;
   room.special = null;
   room.results = [];
 }
 
 function drawSpecialWord(sp: NonNullable<AliasRoom["special"]>, room: AliasRoom) {
-  if (room.deck.length === 0) room.deck = buildDeck();
-  sp.card = room.deck.pop()!;
-  sp.word = sp.card[sp.slot - 1];
+  sp.word = nextWord(room, sp.category);
 }
 
-function startSpecial(room: AliasRoom, team: TeamId, slot: number) {
+function startSpecial(room: AliasRoom, team: TeamId, category: number) {
   room.phase = "special";
   room.endsAt = null;
   room.word = null;
-  room.card = null;
-  room.special = { team, slot, awards: [], word: "", card: [] };
+  room.special = { team, category, awards: [], word: "" };
   drawSpecialWord(room.special, room);
 }
 
@@ -175,7 +170,6 @@ function resetToLobby(room: AliasRoom) {
   room.explainerId = null;
   room.endsAt = null;
   room.word = null;
-  room.card = null;
   room.special = null;
   room.specialPending = [null, null, null, null];
   room.results = [];
@@ -296,7 +290,7 @@ export function applyAction(room: AliasRoom, playerId: string, a: Action): void 
       // landing (moving forward) on an outlined bubble: the special round is owed, and is played
       // on this team's NEXT turn (instead of a timed turn), not right now
       if (after > before && after < room.targetScore && isSpecialStep(after, room.targetScore)) {
-        room.specialPending[team] = slotFor(after);
+        room.specialPending[team] = categoryFor(after);
       }
       finishTurn(room);
       break;
@@ -387,12 +381,11 @@ export function viewFor(room: AliasRoom, playerId: string | null): AliasView {
     endsAt: copy.endsAt,
     word: copy.phase === "special" ? (isExplainer ? copy.special?.word ?? null : null) : copy.phase === "playing" && canSee ? copy.word : null,
     isReferee,
-    slot: slotFor(copy.scores[teamOf(copy)]),
-    card: copy.phase === "special" ? (isExplainer ? copy.special?.card ?? null : null) : copy.phase === "playing" && canSee ? copy.card : null,
+    category: categoryFor(copy.scores[teamOf(copy)]),
     specialPending: copy.specialPending ?? [null, null, null, null],
     specialTurn: copy.phase === "ready" ? copy.specialPending?.[teamOf(copy)] ?? null : null,
     special: copy.special
-      ? { team: copy.special.team, slot: copy.special.slot, index: copy.special.awards.length, total: SPECIAL_WORDS, awards: copy.special.awards }
+      ? { team: copy.special.team, category: copy.special.category, index: copy.special.awards.length, total: SPECIAL_WORDS, awards: copy.special.awards }
       : null,
     results: revealResults ? copy.results : [],
     roundScore: roundScore(copy),
