@@ -24,6 +24,14 @@ const RAW = `
 שינה,התעוררות,חיוך,צחוק,בכי,נשיקה,חיבוק,לחיצת יד,קריצה,פיהוק,עיטוש,שיעול,שיהוק,נחירה,דגדוג,קפיצה,ריצה,הליכה,טיפוס,זחילה,
 `;
 
+export const ALIAS_WORDS: string[] = Array.from(
+  new Set(
+    RAW.split(/[,\n]/)
+      .map((w) => w.trim())
+      .filter(Boolean),
+  ),
+);
+
 // מילים וביטויים בסגנון הקלפים האמיתיים: מושגים, ביטויים, תרבות ישראלית ופעלים
 const RAW2 = `
 דמוקרטיה,אינפלציה,חופש,כבוד,צדק,שלום,מלחמה,גבול,אזרח,בחירות,כנסת,חוק,משטרה,בית משפט,עצמאות,היסטוריה,תרבות,מסורת,מהפכה,ממשלה,
@@ -42,28 +50,8 @@ const RAW2 = `
 ספה,כורסה,וילון,פרוזדור,מרתף,עליית גג,גינה,דשא,גדר,שער,פעמון,תיבת דואר,שכנים,ועד בית,דירה,שכירות,מעבר דירה,קרטון,סלוטייפ,מזוודות,
 סרט תיעודי,סדרה,עונה,פרק,שחקן ראשי,תפאורה,תסריט,כתוביות,טריילר,פרמיירה,אוסקר,מוזיקה,להקה,הופעה,כרטיסים,באלט,אופרה,מחזמר,בובנאי,סטנדאפיסט,
 `;
-
-// ── Categories. Each tile on the board has a category; a team explains words from the category of the
-// tile it stands on. The groups below follow the themes of the word blocks above. ──
-const blocks = (raw: string) =>
-  raw
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map((l) => l.split(",").map((w) => w.trim()).filter(Boolean));
-const A = blocks(RAW);
-const B = blocks(RAW2);
-const pick = (src: string[][], idx: number[]) => Array.from(new Set(idx.flatMap((i) => src[i] ?? [])));
-
-import { CATEGORY_META } from "./categories";
-
-const WORDS_BY_CATEGORY: string[][] = [
-  [...pick(A, [5, 6, 7]), ...pick(B, [2])], // אוכל ושתייה
-  pick(A, [3, 4, 11, 12]), // חיות וטבע
-  [...pick(A, [0, 1, 2, 18, 19]), ...pick(B, [13])], // בית וחפצים
-  [...pick(A, [13]), ...pick(B, [3, 12])], // מקומות ותחבורה
-  [...pick(A, [8, 9, 10, 14, 15, 16, 20]), ...pick(B, [4, 9, 14])], // אנשים ותרבות
-  [...pick(A, [17, 21]), ...pick(B, [0, 1, 5, 6, 7, 8, 10, 11])], // מושגים ופעולות
-];
-
-export const CATEGORIES = CATEGORY_META.map((meta, i) => ({ ...meta, words: WORDS_BY_CATEGORY[i] }));
+ALIAS_WORDS.push(
+  ...RAW2.split(/[,\n]/)
+    .map((w) => w.trim())
+    .filter((w) => w && !ALIAS_WORDS.includes(w)),
+);
