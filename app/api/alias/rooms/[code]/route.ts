@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Action, addPlayer, applyAction, checkRoomPassword, GameError, LOCK_MS, MAX_BAD_ATTEMPTS, viewFor } from "@/lib/alias/game";
-import { deleteRoom, getRoom, saveRoom, withRoomLock } from "@/lib/alias/store";
+import { deleteRoom, getRoom, saveRoom, STORAGE_ERROR, storageReady, withRoomLock } from "@/lib/alias/store";
 
 type Ctx = { params: Promise<{ code: string }> };
 const noRoom = () => NextResponse.json({ error: "החדר לא נמצא" }, { status: 404 });
@@ -16,6 +16,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
 }
 
 export async function POST(req: NextRequest, { params }: Ctx) {
+  if (!storageReady()) return NextResponse.json({ error: STORAGE_ERROR }, { status: 503 });
   const { code } = await params;
   let body: Action & { playerId?: string; name?: string; password?: string };
   try {

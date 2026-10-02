@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createRoom, GameError, newCode, viewFor } from "@/lib/alias/game";
-import { getRoom, saveRoom } from "@/lib/alias/store";
+import { getRoom, saveRoom, STORAGE_ERROR, storageReady } from "@/lib/alias/store";
 
 export async function POST(req: NextRequest) {
+  if (!storageReady()) return NextResponse.json({ error: STORAGE_ERROR }, { status: 503 });
   try {
     const { name, password } = await req.json();
     let code = newCode();

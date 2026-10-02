@@ -76,12 +76,15 @@ export default function AliasClient() {
   useEffect(() => {
     if (!saved) return;
     let stop = false;
+    let misses = 0;
     async function poll() {
       try {
         const res = await fetch(`/api/alias/rooms/${saved!.code}?p=${saved!.playerId}`, { cache: "no-store" });
         if (stop) return;
-        if (res.status === 404 || res.status === 403) { leaveLocal(); return; }
-        if (res.ok) applyView(await res.json());
+        if (res.status === 403) { leaveLocal(); return; }
+        // a 404 can be a hiccup (e.g. a request that hit a fresh server), so only leave after several in a row
+        if (res.status === 404) { if (++misses >= 5) leaveLocal(); return; }
+        if (res.ok) { misses = 0; applyView(await res.json()); }
       } catch { /* transient network error, try again */ }
     }
     poll();

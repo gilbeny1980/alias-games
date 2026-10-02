@@ -1,6 +1,15 @@
 import { kvDel, kvGet, kvSet } from "@/lib/kv";
 import type { AliasRoom } from "@/types/alias";
 
+// On Vercel every request can hit a different server, so rooms MUST live in Redis.
+// (Locally, in-memory storage is fine.)
+export const STORAGE_ERROR = "האתר עדיין לא מחובר למסד הנתונים (Redis), ולכן אי אפשר לפתוח משחק. בעל האתר צריך להשלים את ההגדרה ב-Vercel.";
+export function storageReady(): boolean {
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  return !!(url && token) || !process.env.VERCEL;
+}
+
 const ROOM_TTL = 60 * 60 * 24; // rooms vanish after a day
 const key = (code: string) => `alias:room:${code}`;
 

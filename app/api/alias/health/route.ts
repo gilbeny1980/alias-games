@@ -5,5 +5,5 @@ import { NextResponse } from "next/server";
 export function GET() {
   const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-  return NextResponse.json({ storage: url && token ? "redis" : "memory" }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ storage: url && token ? "redis" : "memory", ready: !!(url && token) || !process.env.VERCEL }, { headers: { "Cache-Control": "no-store" } });
 }
