@@ -2,7 +2,10 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+// Vercel provides the production domain automatically, so NEXT_PUBLIC_SITE_URL is optional
+const SITE =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),

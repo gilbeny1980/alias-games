@@ -63,7 +63,7 @@ app/globals.css            כולל אנימציית החול של שעון הח
 
 1. ב-Vercel: **Add New → Project**, בוחרים את הריפו `alias-games`.
 2. ב-**Settings → Environment Variables** מוסיפים (לכל הסביבות, כולל Preview):
-   `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `NEXT_PUBLIC_SITE_URL` (הכתובת של האתר החדש).
+   `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`.
    את Redis אפשר ליצור בחינם ב-Upstash, או דרך Vercel → Storage.
 3. אופציונלי לפרסומות: `ADS_ADMIN_KEY` (ראו למטה).
 4. Deploy. הכתובת תהיה משהו כמו `https://alias-games.vercel.app`, ואפשר לחבר דומיין משלך.
