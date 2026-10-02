@@ -10,7 +10,7 @@ const STATUS_STYLE: Record<AdStatus, string> = {
   pending: "bg-amber-100 text-amber-800",
   approved: "bg-green-100 text-green-800",
   paused: "bg-gray-200 text-gray-700",
-  rejected: "bg-rose-100 text-rose-700",
+  rejected: "bg-red-100 text-red-700",
 };
 
 type Data = { config: AdsConfig; ads: Ad[] };
@@ -140,7 +140,7 @@ export default function AdminClient() {
       .catch(() => {});
   }, [signedIn, key]);
 
-  const shell = "min-h-[100dvh] app-bg p-4 flex justify-center";
+  const shell = "min-h-[100dvh] bg-gradient-to-br from-red-500 via-red-600 to-red-700 p-4 flex justify-center";
 
   if (checking)
     return <div className={shell}><p className="text-white mt-16">טוען...</p></div>;
@@ -173,7 +173,7 @@ export default function AdminClient() {
                 <button onClick={sendLink} disabled={busy} className="text-xs text-gray-500 underline">שלחו שוב</button>
               </div>
             ) : (
-              <button onClick={sendLink} disabled={busy} className="w-full bg-brand-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-lg">
+              <button onClick={sendLink} disabled={busy} className="w-full bg-red-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-lg">
                 📧 שלח לי קישור כניסה למייל
                 <span className="block text-xs font-normal opacity-90" dir="ltr">{methods.to}</span>
               </button>
@@ -190,12 +190,12 @@ export default function AdminClient() {
                 placeholder="מפתח ניהול"
                 autoComplete="current-password"
                 dir="ltr"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-400"
               />
-              <button className={`w-full font-bold py-3 rounded-xl ${methods.email ? "bg-gray-100 text-gray-700" : "bg-brand-600 text-white"}`}>כניסה</button>
+              <button className={`w-full font-bold py-3 rounded-xl ${methods.email ? "bg-gray-100 text-gray-700" : "bg-red-600 text-white"}`}>כניסה</button>
             </form>
           )}
-          {error && <p className="text-rose-600 text-sm text-center">{error}</p>}
+          {error && <p className="text-red-600 text-sm text-center">{error}</p>}
         </div>
       </div>
     );
@@ -229,11 +229,11 @@ export default function AdminClient() {
             <input type="checkbox" checked={data.config.adsense} onChange={(e) => act({ action: "setConfig", adsense: e.target.checked })} className="w-6 h-6 accent-green-600" />
           </label>
           <p className="text-sm text-gray-600">סה״כ לגבייה מכל המפרסמים: <b>{Math.round(totalDue * 100) / 100} ₪</b></p>
-          {error && <p className="text-rose-600 text-sm">{error}</p>}
+          {error && <p className="text-red-600 text-sm">{error}</p>}
         </div>
 
         <h2 className="text-white font-bold">ממתינות לאישור ({pending.length})</h2>
-        {pending.length === 0 && <p className="text-brand-100 text-sm">אין בקשות חדשות.</p>}
+        {pending.length === 0 && <p className="text-red-100 text-sm">אין בקשות חדשות.</p>}
         {pending.map((a) => <AdCard key={a.id} ad={a} act={act} />)}
 
         <h2 className="text-white font-bold">שאר הפרסומות ({rest.length})</h2>
@@ -283,10 +283,10 @@ function AdCard({ ad, act }: { ad: Ad; act: Act }) {
         )}
         <div className="flex items-center justify-between gap-2 px-3 py-2">
           <span className="text-sm font-bold">{ad.text}</span>
-          {ad.cta && <span className="text-xs bg-brand-600 text-white rounded-full px-3 py-1">{ad.cta}</span>}
+          {ad.cta && <span className="text-xs bg-red-600 text-white rounded-full px-3 py-1">{ad.cta}</span>}
         </div>
       </div>
-      <a href={ad.href} target="_blank" rel="noopener noreferrer nofollow" dir="ltr" className="block text-xs text-brand-600 underline break-all">{ad.href}</a>
+      <a href={ad.href} target="_blank" rel="noopener noreferrer nofollow" dir="ltr" className="block text-xs text-red-600 underline break-all">{ad.href}</a>
 
       <div className="flex flex-wrap gap-1 text-xs">
         {PLACEMENTS.map((p: Placement) => (
@@ -297,7 +297,7 @@ function AdCard({ ad, act }: { ad: Ad; act: Act }) {
               onChange={(e) =>
                 act({ action: "update", id: ad.id, placements: e.target.checked ? [...ad.placements, p] : ad.placements.filter((x) => x !== p) })
               }
-              className="accent-brand-600"
+              className="accent-red-600"
             />
             {PLACEMENT_LABELS[p]}
           </label>
@@ -322,13 +322,13 @@ function AdCard({ ad, act }: { ad: Ad; act: Act }) {
           <input className="w-full border rounded-lg px-3 py-2 text-sm" dir="ltr" value={e.href} onChange={(x) => setE({ ...e, href: x.target.value })} placeholder="קישור יעד https://..." />
           <input className="w-full border rounded-lg px-3 py-2 text-sm" value={e.cta} maxLength={16} onChange={(x) => setE({ ...e, cta: x.target.value })} placeholder="טקסט לכפתור" />
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <label className="bg-brand-100 text-brand-700 font-bold rounded-lg px-3 py-1.5 cursor-pointer">
+            <label className="bg-red-100 text-red-700 font-bold rounded-lg px-3 py-1.5 cursor-pointer">
               {ad.imageUrl ? "החלף תמונה" : "העלה תמונה"}
               <input type="file" accept="image/*" className="hidden" onChange={(x) => pickImage(x.target.files?.[0])} />
             </label>
             {ad.imageUrl && <button onClick={() => act({ action: "removeImage", id: ad.id })} className="text-gray-500 underline text-xs">הסר תמונה</button>}
           </div>
-          {imgError && <p className="text-rose-600 text-xs">{imgError}</p>}
+          {imgError && <p className="text-red-600 text-xs">{imgError}</p>}
           <button
             onClick={async () => { if (await act({ action: "update", id: ad.id, text: e.text, href: e.href, cta: e.cta })) setEditing(false); }}
             className="bg-green-600 text-white font-bold rounded-lg px-4 py-1.5 text-sm"
@@ -342,8 +342,8 @@ function AdCard({ ad, act }: { ad: Ad; act: Act }) {
         <button onClick={() => setEditing(!editing)} className={`${btn} bg-gray-100`}>{editing ? "סגור עריכה" : "ערוך"}</button>
         {ad.status !== "approved" && <button onClick={() => act({ action: "setStatus", id: ad.id, status: "approved" })} className={`${btn} bg-green-600 text-white`}>אשר</button>}
         {ad.status === "approved" && <button onClick={() => act({ action: "setStatus", id: ad.id, status: "paused" })} className={`${btn} bg-gray-200`}>השהה</button>}
-        {ad.status !== "rejected" && <button onClick={() => act({ action: "setStatus", id: ad.id, status: "rejected" })} className={`${btn} bg-rose-100 text-rose-700`}>דחה</button>}
-        <button onClick={() => navigator.clipboard?.writeText(reportUrl)} className={`${btn} bg-brand-100 text-brand-700`}>העתק קישור דוח למפרסם</button>
+        {ad.status !== "rejected" && <button onClick={() => act({ action: "setStatus", id: ad.id, status: "rejected" })} className={`${btn} bg-red-100 text-red-700`}>דחה</button>}
+        <button onClick={() => navigator.clipboard?.writeText(reportUrl)} className={`${btn} bg-red-100 text-red-700`}>העתק קישור דוח למפרסם</button>
         <button onClick={() => confirm("למחוק את הפרסומת?") && act({ action: "delete", id: ad.id })} className={`${btn} text-gray-400`}>מחק</button>
       </div>
     </div>
@@ -386,11 +386,11 @@ function NewAd({ act }: { act: Act }) {
       <input className={input} placeholder="כותרת" value={f.text} onChange={set("text")} maxLength={80} required />
       <input className={input} placeholder="קישור יעד https://..." value={f.href} onChange={set("href")} dir="ltr" required />
       <label className="flex items-center gap-2 text-sm">
-        <span className="bg-brand-100 text-brand-700 font-bold rounded-lg px-3 py-1.5 cursor-pointer">{file ? "החלף תמונה" : "העלה תמונת באנר (לא חובה)"}</span>
+        <span className="bg-red-100 text-red-700 font-bold rounded-lg px-3 py-1.5 cursor-pointer">{file ? "החלף תמונה" : "העלה תמונת באנר (לא חובה)"}</span>
         <input type="file" accept="image/*" className="hidden" onChange={(x) => setFile(x.target.files?.[0] ?? null)} />
         {file && <span className="text-xs text-gray-500 truncate">{file.name}</span>}
       </label>
-      {err && <p className="text-rose-600 text-xs">{err}</p>}
+      {err && <p className="text-red-600 text-xs">{err}</p>}
       <input className={input} placeholder="טקסט לכפתור (לא חובה)" value={f.cta} onChange={set("cta")} maxLength={16} />
       <input className={input} placeholder="מחיר לכניסה ב-₪" value={f.pricePerClick} onChange={set("pricePerClick")} inputMode="decimal" dir="ltr" />
       <div className="flex gap-2">
@@ -418,8 +418,8 @@ function StatsCard({ stats }: { stats: StatsSummary | null }) {
       <h2 className="text-lg font-extrabold">📊 כמה משתמשים יש לי</h2>
       <div className="grid grid-cols-3 gap-2">
         {tiles.map((t) => (
-          <div key={t.label} className="bg-brand-50 rounded-2xl p-3 text-center">
-            <div className="text-3xl font-extrabold text-brand-700 tabular-nums">{t.value}</div>
+          <div key={t.label} className="bg-red-50 rounded-2xl p-3 text-center">
+            <div className="text-3xl font-extrabold text-red-700 tabular-nums">{t.value}</div>
             <div className="text-xs font-bold text-gray-700 leading-tight">{t.label}</div>
             <div className="text-[10px] text-gray-400">{t.hint}</div>
           </div>
@@ -432,7 +432,7 @@ function StatsCard({ stats }: { stats: StatsSummary | null }) {
           {stats.days.map((d) => (
             <div key={d.day} className="flex-1 flex flex-col items-center justify-end h-full" title={`${d.day}: ${d.active} פעילים, ${d.new} חדשים, ${d.rooms} משחקים`}>
               <span className="text-[10px] text-gray-500 tabular-nums">{d.active || ""}</span>
-              <div className="w-full rounded-t bg-brand-500" style={{ height: `${Math.max(d.active ? 4 : 1, (d.active / max) * 100)}%`, opacity: d.active ? 1 : 0.25 }} />
+              <div className="w-full rounded-t bg-red-500" style={{ height: `${Math.max(d.active ? 4 : 1, (d.active / max) * 100)}%`, opacity: d.active ? 1 : 0.25 }} />
               <span className="text-[9px] text-gray-400 mt-1">{d.day.slice(8)}/{d.day.slice(5, 7)}</span>
             </div>
           ))}

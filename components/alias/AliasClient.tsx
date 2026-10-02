@@ -2,15 +2,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Copy, Crown, Loader2, LogOut, MessageCircle, SkipForward, Trophy, Users, Volume2, VolumeX } from "lucide-react";
 import type { AliasView, TeamId } from "@/types/alias";
-import Splash from "./Splash";
-import ClockTimer from "./ClockTimer";
-import YuvalLogo, { YuvalBadge } from "./YuvalLogo";
+import Splash, { Hourglass } from "./Splash";
+import AliasLogo, { AliasBadge } from "./AliasLogo";
 import { specialSteps } from "@/lib/alias/track";
 import { isMuted, playTick, playTimeUp, setMuted, speak, unlockAudio } from "./sound";
 import AdSlot from "./AdSlot";
 
 const TEAM_STYLE = [
-  { bg: "bg-rose-700", soft: "bg-rose-50 border-rose-200", text: "text-rose-800", dot: "🔴" },
+  { bg: "bg-red-800", soft: "bg-red-50 border-red-200", text: "text-red-800", dot: "🔴" },
   { bg: "bg-blue-600", soft: "bg-blue-50 border-blue-200", text: "text-blue-700", dot: "🔵" },
   { bg: "bg-green-600", soft: "bg-green-50 border-green-200", text: "text-green-700", dot: "🟢" },
   { bg: "bg-amber-500", soft: "bg-amber-50 border-amber-200", text: "text-amber-700", dot: "🟡" },
@@ -183,7 +182,7 @@ export default function AliasClient() {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="min-h-[100dvh] app-bg p-4 flex justify-center"
+      className="min-h-[100dvh] bg-gradient-to-br from-red-500 via-red-600 to-red-700 p-4 flex justify-center"
       style={{
         paddingTop: "max(1rem, env(safe-area-inset-top))",
         paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
@@ -200,9 +199,9 @@ function Shell({ children }: { children: React.ReactNode }) {
 // permanent credit at the bottom of every screen
 function Credit() {
   return (
-    <footer className="mt-auto pt-8 pb-2 text-center text-sm text-brand-100">
+    <footer className="mt-auto pt-8 pb-2 text-center text-sm text-red-100">
       פותח ע״י <span className="font-bold text-white">גיל בן יהודה</span>
-      <a href="mailto:gilbeny@gmail.com" dir="ltr" className="block text-xs text-brand-100 underline mt-0.5">
+      <a href="mailto:gilbeny@gmail.com" dir="ltr" className="block text-xs text-red-100 underline mt-0.5">
         gilbeny@gmail.com
       </a>
     </footer>
@@ -243,7 +242,7 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
   return (
     <Shell>
       <div className="pt-6 mb-5">
-        <YuvalLogo size={230} />
+        <AliasLogo size={230} />
       </div>
       <button
         onClick={() => setShowRules(true)}
@@ -263,7 +262,7 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
           onChange={(e) => setName(e.target.value)}
           maxLength={20}
           placeholder="השם שלך"
-          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
+          className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-red-400"
         />
         <input
           type="password"
@@ -272,12 +271,12 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
           maxLength={30}
           autoComplete="new-password"
           placeholder="🔒 סיסמה לחדר (לא חובה)"
-          className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+          className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
         />
         <button
           onClick={() => go("create")}
           disabled={loading}
-          className="w-full bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-lg"
+          className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-lg"
         >
           צור משחק חדש
         </button>
@@ -291,7 +290,7 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
           maxLength={30}
           autoComplete="off"
           placeholder="🔒 סיסמה (אם החדר מוגן)"
-          className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+          className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
         />
         <div className="flex gap-2">
           <input
@@ -299,7 +298,7 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
             onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
             inputMode="numeric"
             placeholder="קוד חדר"
-            className="flex-1 min-w-0 border border-gray-200 rounded-xl px-4 py-3 text-lg text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-brand-400"
+            className="flex-1 min-w-0 border border-gray-200 rounded-xl px-4 py-3 text-lg text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-red-400"
           />
           <button
             onClick={() => go("join")}
@@ -309,7 +308,7 @@ function Home({ onEnter, inviteCode }: { onEnter: (code: string, playerId: strin
             הצטרף
           </button>
         </div>
-        {error && <p className="text-rose-600 text-sm text-center">{error}</p>}
+        {error && <p className="text-red-600 text-sm text-center">{error}</p>}
       </div>
       <div className="mt-4"><AdSlot placement="home" /></div>
     </Shell>
@@ -387,7 +386,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
   return (
     <div className="space-y-4 pb-8">
       <div className="flex items-center justify-between text-white pt-2">
-        <div className="text-white"><YuvalBadge /></div>
+        <div className="text-white"><AliasBadge /></div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => { unlockAudio(); setMuted(!muted); setMutedState(!muted); }}
@@ -439,9 +438,9 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
             ) : isExplainer ? (
               <>
                 <h2 className="text-2xl font-bold">התור שלך להסביר!</h2>
-                <div className="flex items-center gap-3 bg-brand-50 border-2 border-brand-200 rounded-2xl px-5 py-3">
+                <div className="flex items-center gap-3 bg-red-50 border-2 border-red-200 rounded-2xl px-5 py-3">
                   <span className="text-sm text-gray-600">הקבוצה עומדת על בועה</span>
-                  <span className="w-12 h-12 rounded-full bg-white border-2 border-brand-300 text-brand-600 text-2xl font-black flex items-center justify-center shadow">
+                  <span className="w-12 h-12 rounded-full bg-white border-2 border-red-300 text-red-600 text-2xl font-black flex items-center justify-center shadow">
                     {view.slot}
                   </span>
                 </div>
@@ -468,9 +467,9 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
           <Centered>
             <TeamBadge view={view} team={view.activeTeam} />
             <div className="flex items-center gap-5">
-              {/* key restarts the clock when a new turn starts; elapsed keeps it in step with the server clock */}
-              <ClockTimer key={view.turn} seconds={view.roundSeconds} size={84} elapsed={view.roundSeconds - msLeft / 1000} urgent={secondsLeft > 0 && secondsLeft <= 5} />
-              <div className={`text-6xl font-extrabold tabular-nums ${secondsLeft <= 10 ? "text-rose-600" : "text-gray-800"}`}>
+              {/* key restarts the sand when a new turn starts; elapsed keeps it in step with the server clock */}
+              <Hourglass key={view.turn} seconds={view.roundSeconds} size={72} glass="#dc2626" elapsed={view.roundSeconds - msLeft / 1000} />
+              <div className={`text-6xl font-extrabold tabular-nums ${secondsLeft <= 10 ? "text-red-600" : "text-gray-800"}`}>
                 {secondsLeft}
               </div>
             </div>
@@ -553,7 +552,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
             </ul>
             {isExplainer && <p className="text-xs text-gray-400 text-center">אפשר ללחוץ על מילה כדי לתקן את התוצאה</p>}
             {isExplainer || isHost ? (
-              <BigButton onClick={() => act("next")} disabled={busy} color="bg-brand-600">אישור והמשך</BigButton>
+              <BigButton onClick={() => act("next")} disabled={busy} color="bg-red-600">אישור והמשך</BigButton>
             ) : (
               <p className="text-center text-gray-500 text-sm">ממתינים ל{explainer?.name ?? "המסביר"}...</p>
             )}
@@ -584,7 +583,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
                           ? "bg-gray-200 border-gray-300 text-gray-500"
                           : `${TEAM_STYLE[award].bg} border-white text-white`
                         : i === view.special!.index
-                          ? "border-brand-500 text-brand-600 bg-white"
+                          ? "border-red-500 text-red-600 bg-white"
                           : "border-gray-200 text-gray-300 bg-white"
                     }`}
                   >
@@ -635,7 +634,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
               {teamsOf(view).map((t) => view.scores[t]).join(" : ")}
             </p>
             {isHost ? (
-              <BigButton onClick={() => act("rematch")} disabled={busy} color="bg-brand-600">משחק חדש</BigButton>
+              <BigButton onClick={() => act("rematch")} disabled={busy} color="bg-red-600">משחק חדש</BigButton>
             ) : (
               <p className="text-sm text-gray-400">ממתינים שהמארח יתחיל משחק חדש</p>
             )}
@@ -649,7 +648,7 @@ function Room({ view, secondsLeft, msLeft, busy, error, act }: { view: AliasView
 
       {view.phase !== "lobby" && <Board view={view} />}
 
-      {error && <p className="text-center text-sm bg-white/90 text-rose-600 rounded-xl py-2">{error}</p>}
+      {error && <p className="text-center text-sm bg-white/90 text-red-600 rounded-xl py-2">{error}</p>}
 
       {view.phase !== "lobby" && view.phase !== "finished" && <Players view={view} compact />}
     </div>
@@ -683,7 +682,7 @@ function Lobby({ view, isHost, act, busy }: { view: AliasView; isHost: boolean; 
                   key={n}
                   onClick={() => act("settings", { teamCount: n })}
                   className={`w-10 h-9 rounded-lg font-bold border-2 ${
-                    view.teamCount === n ? "bg-brand-600 text-white border-brand-600" : "bg-white text-gray-600 border-gray-200"
+                    view.teamCount === n ? "bg-red-600 text-white border-red-600" : "bg-white text-gray-600 border-gray-200"
                   }`}
                 >
                   {n}
@@ -705,7 +704,7 @@ function Lobby({ view, isHost, act, busy }: { view: AliasView; isHost: boolean; 
               type="checkbox"
               checked={view.skipPenalty}
               onChange={(e) => act("settings", { skipPenalty: e.target.checked })}
-              className="w-5 h-5 accent-brand-600"
+              className="w-5 h-5 accent-red-600"
             />
           </label>
           <BigButton onClick={() => act("start")} disabled={busy || !canStart} color="bg-green-600">
@@ -737,12 +736,12 @@ function PasswordBox({ hasPassword, onSave, busy }: { hasPassword: boolean; onSa
           maxLength={30}
           autoComplete="new-password"
           placeholder={hasPassword ? "סיסמה חדשה" : "קבעו סיסמה"}
-          className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+          className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
         />
         <button
           disabled={busy || (!pw && !hasPassword)}
           onClick={() => { onSave(pw); setPw(""); }}
-          className="bg-brand-600 disabled:opacity-40 text-white text-sm font-bold px-3 rounded-lg"
+          className="bg-red-600 disabled:opacity-40 text-white text-sm font-bold px-3 rounded-lg"
         >
           {pw ? "שמור" : "הסר"}
         </button>
@@ -812,18 +811,18 @@ function Scoreboard({ view }: { view: AliasView }) {
 // One Alias card: 8 words, the number on the team's square picks the one to explain.
 function AliasCard({ card, slot }: { card: string[]; slot: number }) {
   return (
-    <div className="w-full rounded-2xl border-2 border-brand-200 bg-brand-50 overflow-hidden">
-      <ul className="divide-y divide-brand-100">
+    <div className="w-full rounded-2xl border-2 border-red-200 bg-red-50 overflow-hidden">
+      <ul className="divide-y divide-red-100">
         {card.map((w, i) => {
           const active = i + 1 === slot;
           return (
             <li
               key={i}
               className={`flex items-center gap-3 px-3 ${
-                active ? "bg-yellow-200 py-3 text-2xl font-extrabold text-brand-900" : "py-1 text-sm text-gray-400"
+                active ? "bg-yellow-200 py-3 text-2xl font-extrabold text-red-900" : "py-1 text-sm text-gray-400"
               }`}
             >
-              <span className={`w-6 shrink-0 text-center ${active ? "text-brand-700" : "text-brand-300"}`}>{i + 1}</span>
+              <span className={`w-6 shrink-0 text-center ${active ? "text-red-700" : "text-red-300"}`}>{i + 1}</span>
               <span className="flex-1 text-center break-words">{w}</span>
               <span className="w-6 shrink-0" />
             </li>
@@ -885,7 +884,7 @@ function trackPoints(count: number): { pts: Pt[]; height: number } {
   return { pts, height: 58 + bottom + BOARD_PAD };
 }
 
-const TEAM_PAWN = ["#be123c", "#2563eb", "#16a34a", "#f59e0b"];
+const TEAM_PAWN = ["#7f1d1d", "#2563eb", "#16a34a", "#f59e0b"];
 const PAWN_CORNER = [[11, -11], [-11, -11], [11, 11], [-11, 11]];
 
 function Board({ view }: { view: AliasView }) {
@@ -901,11 +900,11 @@ function Board({ view }: { view: AliasView }) {
       <svg viewBox={`0 0 ${BOARD_W} ${height}`} className="w-full h-auto" role="img" aria-label="לוח המשחק">
         <defs>
           <radialGradient id="boardGlow" cx="50%" cy="45%" r="75%">
-            <stop offset="0" stopColor="#7c3aed" />
-            <stop offset="1" stopColor="#4c1d95" />
+            <stop offset="0" stopColor="#ef4444" />
+            <stop offset="1" stopColor="#b91c1c" />
           </radialGradient>
         </defs>
-        <rect x="0" y="0" width={BOARD_W} height={height} rx="16" fill="url(#boardGlow)" stroke="#ddd6fe" strokeOpacity="0.5" strokeWidth="2" />
+        <rect x="0" y="0" width={BOARD_W} height={height} rx="16" fill="url(#boardGlow)" stroke="#fecaca" strokeOpacity="0.5" strokeWidth="2" />
 
         {/* a faint line joining the bubbles shows the way */}
         <polyline points={pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")} fill="none" stroke="#fff" strokeOpacity="0.18" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
@@ -919,7 +918,7 @@ function Board({ view }: { view: AliasView }) {
               <g key={i} transform={`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`}>
                 <circle r={BUBBLE_R + 3} fill="#fde047" opacity="0.22" />
                 <path d="M-9 8 L-17 18 L-3 13" fill="none" stroke="#fff7ed" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-                <circle r={BUBBLE_R} fill="#4c1d95" stroke="#fff7ed" strokeWidth="2.8" />
+                <circle r={BUBBLE_R} fill="#b91c1c" stroke="#fff7ed" strokeWidth="2.8" />
                 <text y="5.2" textAnchor="middle" fontSize="15" fontWeight="800" fill="#fff7ed">{(i % 8) + 1}</text>
               </g>
             );
@@ -928,7 +927,7 @@ function Board({ view }: { view: AliasView }) {
             <g key={i} transform={`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`}>
               <path d="M-9 8 L-17 18 L-3 13 Z" fill="#fff7ed" />
               <circle r={BUBBLE_R} fill="#fff7ed" />
-              <text y="5.2" textAnchor="middle" fontSize="15" fontWeight="800" fill="#6d28d9">{(i % 8) + 1}</text>
+              <text y="5.2" textAnchor="middle" fontSize="15" fontWeight="800" fill="#dc2626">{(i % 8) + 1}</text>
             </g>
           );
         })}
@@ -938,7 +937,7 @@ function Board({ view }: { view: AliasView }) {
           <circle r="27" fill="#fff" opacity="0.28" />
           <path d="M-12 11 L-23 25 L-4 18 Z" fill="#fff" />
           <circle r="20" fill="#fff" />
-          <text y="7" textAnchor="middle" fontSize="21" fontWeight="900" fill="#6d28d9">1</text>
+          <text y="7" textAnchor="middle" fontSize="21" fontWeight="900" fill="#dc2626">1</text>
         </g>
         <g transform={`translate(${(start.x - 14).toFixed(1)} ${(start.y - 40).toFixed(1)})`}>
           <rect x="-30" y="-12" width="60" height="24" rx="12" fill="#16a34a" stroke="#fff" strokeWidth="2" />
@@ -1063,7 +1062,7 @@ function Stepper({ value, step, min, max, onChange }: { value: number; step: num
 // Invite text + link; the link carries only the room code, never the password
 function inviteText(code: string, hasPassword: boolean) {
   const url = `${location.origin}/?room=${code}`;
-  return `בואו לשחק איתי ביובל! 🗣️\nקוד חדר: ${code}\n${url}${hasPassword ? "\n(החדר מוגן בסיסמה, הסיסמה אצלי)" : ""}`;
+  return `בואו לשחק איתי Alias Games! 🗣️\nקוד חדר: ${code}\n${url}${hasPassword ? "\n(החדר מוגן בסיסמה, הסיסמה אצלי)" : ""}`;
 }
 
 function WhatsAppInvite({ code, hasPassword }: { code: string; hasPassword: boolean }) {

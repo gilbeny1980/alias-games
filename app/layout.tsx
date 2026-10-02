@@ -9,16 +9,16 @@ const SITE =
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
-  title: "יובל - משחק מילים",
+  title: "Alias Games - משחק מילים",
   description: "משחק הסברת מילים בקבוצות, אונליין עם חברים",
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "יובל" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Alias Games" },
   icons: { apple: "/apple-touch-icon.png", icon: "/icon-192.png" },
   openGraph: {
-    title: "יובל - משחק מילים",
-    description: "מצטרפים לחדר ומשחקים יובל עם חברים, ישר מהטלפון",
+    title: "Alias Games - משחק מילים",
+    description: "מצטרפים לחדר ומשחקים אליאס עם חברים, ישר מהטלפון",
     url: "/",
-    siteName: "יובל",
+    siteName: "Alias Games",
     locale: "he_IL",
     type: "website",
     images: [{ url: "/icon-512.png", width: 512, height: 512 }],
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#5b21b6",
+  themeColor: "#dc2626",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -43,7 +43,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
       </head>
-      <body className="min-h-screen bg-brand-800">
+      <body className="min-h-screen bg-red-800">
         <ServiceWorkerRegistrar />
         {children}
       </body>

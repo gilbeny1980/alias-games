@@ -54,7 +54,7 @@ function SponsorBanner({ ad }: { ad: PublicAd }) {
       )}
       <div className="flex items-center justify-between gap-2 px-3 py-2">
         <span className="text-sm font-bold text-gray-800">{ad.text}</span>
-        {ad.cta && <span className="shrink-0 text-xs bg-brand-600 text-white rounded-full px-3 py-1">{ad.cta}</span>}
+        {ad.cta && <span className="shrink-0 text-xs bg-red-600 text-white rounded-full px-3 py-1">{ad.cta}</span>}
       </div>
     </a>
   );

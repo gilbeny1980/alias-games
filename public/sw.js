@@ -1,6 +1,6 @@
 // Minimal service worker: lets the game install as an app and keeps the shell
 // available if the connection drops. Game state is never cached (it lives on the server).
-const CACHE_NAME = 'yuval-v1';
+const CACHE_NAME = 'alias-games-v1';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(['/'])));
