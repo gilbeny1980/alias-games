@@ -170,8 +170,20 @@ function Shell({ children }: { children: React.ReactNode }) {
         paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
       }}
     >
-      <div className="w-full max-w-md">{children}</div>
+      <div className="w-full max-w-md flex flex-col" style={{ minHeight: "calc(100dvh - 2rem)" }}>
+        <div>{children}</div>
+        <Credit />
+      </div>
     </div>
+  );
+}
+
+// permanent credit at the bottom of every screen
+function Credit() {
+  return (
+    <footer className="mt-auto pt-8 pb-2 text-center text-sm text-red-100">
+      פותח ע״י <span className="font-bold text-white">גיל בן יהודה</span>
+    </footer>
   );
 }
 
