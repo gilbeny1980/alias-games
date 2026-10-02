@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { kvDel, kvGet, kvProvider, kvSet } from "@/lib/kv";
+import { kvDel, kvGet, kvProvider, kvSet, storageEnvNames } from "@/lib/kv";
 import { storageReady } from "@/lib/alias/store";
 
 // Shows which storage is active ("turso", "redis" or "memory"). Reveals no secrets.
 // Add ?check=1 to also do a real write/read against the database.
 export async function GET(req: NextRequest) {
   const out: Record<string, unknown> = { storage: kvProvider(), ready: storageReady() };
+  // variable NAMES only (never values), so a missing connection is easy to diagnose
+  if (!out.ready || req.nextUrl.searchParams.get("check") === "1") out.storageEnv = storageEnvNames();
   if (req.nextUrl.searchParams.get("check") === "1" && out.ready) {
     try {
       const probe = String(Date.now());

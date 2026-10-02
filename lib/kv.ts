@@ -11,12 +11,28 @@ const redisCreds = () => ({
   token: process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN,
 });
 
+// Vercel's storage integration can add a custom prefix (e.g. STORAGE_TURSO_DATABASE_URL),
+// so look for the variables by suffix as well as by exact name.
+function envBySuffix(...suffixes: string[]): string | undefined {
+  for (const s of suffixes) if (process.env[s]) return process.env[s];
+  const key = Object.keys(process.env).find((k) => process.env[k] && suffixes.some((s) => k.endsWith(`_${s}`)));
+  return key ? process.env[key] : undefined;
+}
+const tursoCreds = () => ({
+  url: envBySuffix("TURSO_DATABASE_URL", "LIBSQL_URL"),
+  token: envBySuffix("TURSO_AUTH_TOKEN", "LIBSQL_AUTH_TOKEN"),
+});
+
 export function kvProvider(): KvProvider {
-  if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) return "turso";
-  if (process.env.TURSO_DATABASE_URL?.startsWith("file:")) return "turso"; // local libSQL file, for tests
+  const t = tursoCreds();
+  if (t.url && (t.token || t.url.startsWith("file:"))) return "turso"; // file: = local libSQL file, for tests
   const r = redisCreds();
   return r.url && r.token ? "redis" : "memory";
 }
+
+// Names (never values) of storage-related environment variables, to diagnose a missing connection
+export const storageEnvNames = () =>
+  Object.keys(process.env).filter((k) => /TURSO|LIBSQL|UPSTASH|REDIS|KV_|STORAGE/i.test(k)).sort();
 
 // ── memory ──────────────────────────────────────────────────────────────────
 const mem = new Map<string, { v: unknown; exp: number | null }>();
@@ -27,10 +43,10 @@ let tursoReady: Promise<unknown> | null = null;
 
 async function turso(): Promise<Client> {
   if (!tursoClient) {
-    const raw = process.env.TURSO_DATABASE_URL!;
+    const { url: raw, token } = { url: tursoCreds().url!, token: tursoCreds().token };
     // the web build talks plain HTTPS (good for serverless); the node build is only needed for local files
     const mod = raw.startsWith("file:") ? await import("@libsql/client") : await import("@libsql/client/web");
-    tursoClient = mod.createClient({ url: raw.replace(/^libsql:\/\//, "https://"), authToken: process.env.TURSO_AUTH_TOKEN });
+    tursoClient = mod.createClient({ url: raw.replace(/^libsql:\/\//, "https://"), authToken: token });
   }
   tursoReady ??= tursoClient.execute("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL, exp INTEGER)");
   await tursoReady;
